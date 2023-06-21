@@ -1,0 +1,1562 @@
+#+title:    Emacs Configuration
+#+property: header-args :results silent :tangle ~/.config/emacs/init.el
+
+This file contains an annotated configuration for Emacs. The basic philosophy is to stay as close as vanilla Emacs as is humanly bearable.
+
+Org Babel is the package that runs [[info:org#Evaluating Code Blocks][evaluates code blocks]] within an Org mode file. By default, it will ask for confirmation each time you execute a line. This snippet nullifies this behaviour.
+
+#+begin_src emacs-lisp :tangle no
+  ;; Trust all code embedded in Org files
+  (setq org-confirm-babel-evaluate nil)
+#+end_src
+
+This configuration is divided in functional sections with a focus on writing prose and data science code.
+
+* Basic Configuration
+This section provide the basic configuration for Emacs package management, cursor movement, completion and other fundamental aspects.
+
+** Packages
+This section enables the MELPA package archive and initialises the package management system.
+
+The [[info:use-package#Top][use-package]] library provides a tidy method to write init files in Emacs. The =use-package-always-ensure= option will install the package if it is not yet available.
+
+You can install, remove or refresh [[info:emacs#packages][packages]] with the =list-packages= function.
+
+#+begin_src elisp
+  ;; Set package archives
+  (require 'package)
+  (add-to-list 'package-archives
+               '("melpa" . "https://melpa.org/packages/"))
+
+  (package-initialize)
+
+  ;; Bootstrap `use-package'
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
+  (require 'use-package)
+
+  ;; Always load packages when not yet installed
+  (setq use-package-always-ensure t)
+
+  ;; Native compile packges
+  (setq package-native-compile t)
+#+end_src
+
+** Configuration files
+Emacs includes a menu-driven configuration system that writes settings to the init file on the fly. This code snippet separates the manual init file (=init.el=) from the automated version (=config.el=). The custom configuration file is loaded first. Any settings in the =init.el= file will thus override the configuration in the [[info:emacs#Saving Customizations][customisation file]].
+
+#+begin_src emacs-lisp
+  ;; Custom settings in a separate file and load the custom settings
+  (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+  
+  (when (file-exists-p custom-file)
+    (load custom-file))
+#+end_src
+
+** Cursor Movement
+*** Cursor Beacon
+[[https://github.com/Malabarba/beacon][Beacon mode]] makes it easier to find the cursor when moving between windows by flashing the background colour.
+
+#+begin_src elisp
+  ;; Beacon to indicate the active window
+  (use-package beacon
+    :config
+    (beacon-mode 1))
+
+  ;; Highlight current line
+  (global-hl-line-mode)
+#+end_src
+
+*** Escape key behaviour
+The [[info:emacs#Quitting][escape key]] has to be pressed three time by default, which I have changed to once. It also negates the annoying behaviour that pressing escape can remove your carefully-crafted window setup.
+
+#+begin_src elisp
+  (global-set-key (kbd "<escape>") 'keyboard-quit)
+#+end_src
+
+*** Nullify common CUA Windows keys
+I am forced to use Windows at work, so these keybindings are in my muscle memory and do something very different in Emacs. To avoid confusion with CUA systems, =C-z= and =C-v= are disabled.  This code also adds the a more convenient key chord to remove a frame.
+
+#+begin_src elisp
+  ;; Change keyboard defaults
+  (global-set-key (kbd "C-x x") 'delete-frame)
+  (global-set-key (kbd "C-z") nil)
+  (global-set-key (kbd "C-v") nil)
+#+end_src
+
+*** Yes or No
+Lastly, Emacs distinguishes between "y" or "yes" when asking for confirmation. Emacs uses the longer version when giving the wrong answer is perceived to have serious consequences. I prefer the [[info:emacs#Yes or No Prompts][Yes or No Prompts]] to be all the short version and take the risk.
+
+#+begin_src elisp
+  ;; Yes or No
+  (setq use-short-answers t)
+#+end_src
+
+*** Window movement
+The default bindings for [[info:emacs#Other Window][moving between windows]] is a bit cumbersome, the built-in [[info:emacs#Window Convenience][Windmove package]] makes it a bit easier.
+
+#+begin_src elisp
+  ;; Window navigation
+  ;; Fn-Super and arrow keys
+  (global-set-key (kbd "s-<home>")  'windmove-left)
+  (global-set-key (kbd "s-<end>")   'windmove-right)
+  (global-set-key (kbd "s-<prior>") 'windmove-up)
+  (global-set-key (kbd "s-<next>")  'windmove-down)
+  ;; For keyboard without or inconvenient fn key
+  (global-set-key (kbd "M-s-<left>")  'windmove-left)
+  (global-set-key (kbd "M-s-<right>") 'windmove-right)
+  (global-set-key (kbd "M-s-<up>")    'windmove-up)
+  (global-set-key (kbd "M-s-<down>")  'windmove-down)
+#+end_src
+
+The [[https://github.com/lukhas/buffer-move/blob/master/buffer-move.el][buffer-move]] package provides some convenience functions to swap the position of windows within a frame.
+
+#+begin_src elisp
+  ;; Switch buffers between windows
+  (use-package buffer-move
+    :bind (
+           ("C-s-<left>"  . buf-move-left)
+           ("C-s-<right>" . buf-move-right)
+           ("C-s-<up>"    . buf-move-up)
+           ("C-s-<down>"  . buf-move-down)))
+#+end_src
+
+*** Spliiting windows vertically
+
+#+begin_src elisp
+  ;; Force vertical window split
+  (setq split-width-threshold 80)
+#+end_src
+
+** Minibuffer Completion
+*** Vertico
+The [[info:vertico][Vertico]] package enhances autocompletion in the mini buffer. When Savehist mode is enabled, minibuffer history is saved periodically and when exiting Emacs.
+
+#+begin_src elisp
+  ;; Enable vertico
+  (use-package vertico
+    :init
+    (vertico-mode)
+    :custom
+    (vertico-sort-function 'vertico-sort-history-alpha))
+
+  ;; Persist history over Emacs restarts.
+  (use-package savehist
+    :init
+    (savehist-mode))
+#+end_src
+
+*** Orderless
+The [[https://github.com/oantolin/orderless][orderless package]] matches pattern, irrespective of the order they are typed in. 
+
+#+begin_src elisp
+  (use-package orderless
+    :init
+    (setq completion-styles '(orderless basic)
+          completion-category-defaults nil
+          completion-category-overrides
+          '((file (styles partial-completion)))))
+#+end_src
+
+*** Marginalia
+This package enables [[https://github.com/minad/marginalia][marginala]] to minibuffer completeions, providing som context to the candidates.
+
+#+begin_src elisp
+  ;; Enable richer annotations using the Marginalia package
+  (use-package marginalia
+    :bind (:map minibuffer-local-map
+	   ("M-A" . marginalia-cycle))
+    :init
+    (marginalia-mode))
+#+end_src
+
+** Consult
+#+begin_src elisp
+  ;; Consult convenience functions
+  (use-package consult
+    :custom
+    (consult-narrow-key "<")
+    :bind (("C-x C-r" . consult-recent-file)
+           ("C-x b"   . consult-buffer)
+           ("M-s-s"   . consult-ripgrep)
+           ("M-y"     . consult-yank-pop)
+           ("M-s d"   . consult-find)
+           ("C-x r b" . consult-bookmark)
+           ("M-g o"   . consult-org-heading)))
+#+end_src
+
+** Embark
+#+begin_src elisp
+  (use-package embark
+    :bind
+    (("C-."   . embark-act)
+     ("C-:"   . embark-dwim)
+     ("C-h B" . embark-bindings)))
+
+  (use-package embark-consult
+    :hook (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+
+** Help Functions
+*** Which Key?
+#+begin_src elisp
+  ;; Which key to help discovery
+  (use-package which-key
+    :config
+    (which-key-mode))
+#+end_src
+
+*** Improved help buffers
+#+begin_src emacs-lisp
+  ;; Improved help buffers
+  (use-package helpful
+    :bind
+    (("C-h f" . #'helpful-callable)
+     ("C-h v" . #'helpful-variable)
+     ("C-h k" . #'helpful-key)
+     ("C-h F" . #'helpful-function)
+     ("C-h C" . #'helpful-command)))
+#+end_src
+
+** File Management
+*** Default folders
+#+begin_src emacs-lisp
+  ;; File Management
+
+  ;; Default folders
+  (setq emacs-studio-documents-directory (concat (getenv "HOME") "/Documents/")
+        org-directory (concat emacs-studio-documents-directory "notes/"))
+#+end_src
+
+*** Dired
+#+begin_src elisp
+  (use-package dired
+    :ensure nil
+    :commands (dired dired-jump)
+    :custom
+    (dired-listing-switches
+     "-goah --group-directories-first --time-style=long-iso")
+    (dired-dwim-target t)
+    (delete-by-moving-to-trash t))
+#+end_src
+
+**** Single buffer
+#+begin_src elisp
+  (use-package dired-single
+    :bind
+    (:map dired-mode-map
+          ("C-<up>"  . dired-single-up-directory)
+          ("^"       . dired-single-up-directory)
+          ("<enter>" . dired-single-buffer)))
+#+end_src
+
+**** Hide dotfiles
+#+begin_src elisp
+  (use-package dired-hide-dotfiles
+    :hook (dired-mode . dired-hide-dotfiles-mode)
+    :bind (:map dired-mode-map ("." . dired-hide-dotfiles-mode)))
+  #+end_src
+
+**** Open Files with external software
+#+begin_src elisp
+  (use-package openwith
+    :init
+    (openwith-mode t)
+    (setq openwith-associations '(("\\.mp4\\'" "vlc" (file)))))
+
+  (setq large-file-warning-threshold nil)
+#+end_src
+
+**** Open Files as root
+#+begin_src elisp
+  ;; Open relevant files as root
+  (use-package sudo-edit
+    :config
+    (require 'sudo-edit)
+    :bind
+    (("C-x C-g" . sudo-edit-find-file)))
+#+end_src
+
+*** Backups and Lock files
+#+begin_src elisp
+  ;; Move backup files
+  (setq backup-directory-alist
+        `(("." . ,(expand-file-name "backups/" user-emacs-directory)))
+        backup-by-copying t    ; Don't delink hardlinks
+        version-control t      ; Use version numbers on backups
+        delete-old-versions t  ; Automatically delete excess backups
+        kept-new-versions 3    ; how many of the newest versions to keep
+        kept-old-versions 3)   ; and how many of the old
+
+  ;; No lock files
+  (setq create-lockfiles nil)
+#+end_src
+
+*** Automatically Save Files
+#+begin_src emacs-lisp
+  ;; Automatically saving files
+  (use-package super-save
+    :config
+    (super-save-mode +1)
+    :custom
+    (super-save-auto-save-when-idle t))
+#+end_src
+
+*** Store List of  Recently Opened Files
+#+begin_src emacs-lisp
+  (use-package recentf
+    :config
+    (setq recentf-max-menu-items 50
+          recentf-max-saved-items 50)
+    (add-to-list 'recentf-exclude
+                 (expand-file-name user-emacs-directory)
+                 (expand-file-name "/tmp/"))
+    (recentf-mode t))
+  (run-at-time nil (* 50 60) 'recentf-save-list)
+#+end_src
+
+*** File Reversion
+#+begin_src elisp
+  ;; Revert files automatically
+  (global-auto-revert-mode)
+#+end_src
+
+*** Searching files and contents
+#+begin_src elisp
+  (setq xref-search-program 'ripgrep)
+
+  (use-package consult-ag
+    :bind
+    (("M-s s" . consult-ag)))
+#+end_src
+
+* Look and Feel
+This section defines the design of the Emacs text interface, such as themes, fonts and typography. The dashboard is the central entry point 
+
+** Minimal Interface
+These configuration setting remove the tool bar, scroll bar and the menu. If you still like to use the menu, press the F10 key.
+
+#+begin_src emacs-lisp
+  ;; Minimal interface
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (menu-bar-mode -1)
+
+  ;; No fringe marker for bookmarks
+  (setq bookmark-set-fringe-mark nil)
+#+end_src
+
+** Fonts
+#+begin_src elisp
+  ;; Main typeface
+  (set-face-attribute 'default nil :family "Fira Code" :height 150)
+  (set-face-attribute 'fixed-pitch nil :family "Fira Code")
+  (set-face-attribute 'variable-pitch nil :family "Noto Sans")
+
+  ;; Mixed-pitch fonts
+  (use-package mixed-pitch
+    :after org
+    :config
+    (set-face-attribute 'org-date nil :family "Fira Code")
+    :hook
+    (org-mode . mixed-pitch-mode))
+#+end_src
+
+*** Icons
+The [[https://github.com/domtronn/all-the-icons.el][all-the-icons]] package provides access to iconographic character sets. You will need to use =(all-the-icons-install-fonts)= to download the font files when using this package for the first time.
+
+#+begin_src elisp
+  (use-package all-the-icons)
+#+end_src
+
+The [[https://github.com/jtbm37/all-the-icons-dired][all-the-icons-dired]] packge displays file type icons in the Dired file manager.
+
+#+begin_src elisp
+  ;; Dired icons
+  (use-package all-the-icons-dired
+    :config
+    (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+#+end_src
+
+** Themes
+The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Protesilaos Stavrou (Prot) provides colorful and legible themes. Every time Emacs starts, a random dark theme is loaded. Press the F12 theme to select another theme. Use C-F12 to pick a new random dark theme.
+
+#+begin_src emacs-lisp
+  (use-package ef-themes
+    :init
+    (defun ef-themes-load-random-dark ()
+      (interactive)
+      (ef-themes-load-random 'dark))
+
+    :bind (("C-<f12>" . ef-themes-select)
+           ("<f12>"   . ef-themes-load-random-dark))
+    :init
+    (setq ef-themes-headings
+      '((1 . (bold variable-pitch 1.3))
+        (2 . (regular 1.1))
+        (t . (variable-pitch))))
+    (ef-themes-load-random-dark))
+#+end_src
+
+** Mode Line
+#+begin_src elisp
+  ;; Mode Line
+  (use-package doom-modeline
+    :after (all-the-icons)
+    :init (doom-modeline-mode 1)
+    :custom (doom-modeline-enable-word-count t)
+    (doom-modeline-buffer-encoding nil))
+
+  ;; Display battery life and time
+  (display-battery-mode 1)
+  (setq display-time-24hr-format t
+        display-time-load-average-threshold 70) ;; CPU load threshold
+  (display-time-mode 1)
+#+end_src
+
+** Org Mode
+#+begin_src elisp
+  (use-package org
+    :config
+    (setq org-startup-indented t
+          org-ellipsis " ↲" ;folding symbol
+          org-hide-emphasis-markers t
+          org-startup-with-inline-images t
+          org-image-actual-width '(450)
+          org-hide-block-startup t
+          org-catch-invisible-edits 'error
+          org-cycle-separator-lines 0
+          org-startup-with-latex-preview t))
+#+end_src
+
+*** Org Appear
+#+begin_src elisp
+  ;; Temporarily hide symbols
+  (use-package org-appear
+    :hook (org-mode . org-appear-mode))
+#+end_src
+
+*** LaTeX Previews
+#+begin_src emacs-lisp
+  (use-package org-fragtog
+    :config
+    (add-hook 'org-mode-hook 'org-fragtog-mode)
+    (setq org-format-latex-options
+          (plist-put org-format-latex-options :scale 2)))
+#+end_src
+
+** Dashboard
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :config
+    (dashboard-setup-startup-hook)
+    (setq initial-buffer-choice
+          (lambda () (get-buffer-create "*dashboard*"))
+          dashboard-center-content t
+          dashboard-startup-banner 'logo
+          dashboard-banner-logo-png
+          (concat org-directory "images/logo.png")
+          dashboard-banner-logo-title "Playfully Intellectual\n  Reality Disruptor"
+          dashboard-init-info "HÖBSTE AL GESJREVE?"
+          dashboard-set-heading-icons t
+          dashboard-set-file-icons t
+          dashboard-items '((recents  . 5)
+                            (bookmarks . 5)
+                            (agenda . 5)))
+    (set-face-attribute 'dashboard-items-face nil :weight 'normal))
+
+  ;; Read file as list of lines
+  ;; http://ergoemacs.org/emacs/elisp_read_file_content.html
+  (defun read-lines (filepath)
+    "Return a list of lines of a file at FILEPATH."
+    (with-temp-buffer
+      (insert-file-contents filepath)
+      (split-string (buffer-string) "\n" t)))
+
+  ;; Use file as random footer message
+  ;; Quotes stored in quotes org-roam file
+  (setq dashboard-footer-messages
+        (read-lines (concat user-emacs-directory "dashboard-quotes.txt"))
+        dashboard-footer-icon
+        (all-the-icons-faicon "quote-right"
+                              :height 1.1
+                              :v-adjust -0.05
+                              :face 'font-lock-keyword-face))
+#+end_src
+
+*** Denote Dashboard
+[[https://github.com/emacs-dashboard/emacs-dashboard/issues/464][Question on creating dashboard item link · Issue #464 · emacs-dashboard/emacs-dashboard · GitHub]]
+
+#+begin_src emacs-lisp
+  ;; Add denote statistics
+  (defun denote-explore-dashboard (list-size)
+    "Helper function to display Denote summary on the Emacs Dashboard.
+    LIST-SIZE is a dummy variable required by the dashboard package."
+    (dashboard-insert-heading "Denote:"
+                              "d"
+                              (all-the-icons-octicon
+                               "file-text"
+                               :height 1.2
+                               :v-adjust 0.0
+                               :face 'dashboard-heading))
+    (let ((prefix (concat "    "
+                          (all-the-icons-octicon
+                           "primitive-dot"
+                           :height 1.0 :v-adjust 0.01)
+                          "   ")))
+      (insert "\n")
+      (insert (concat prefix (denote-explore-count-notes) "\n"))
+      (insert (concat prefix (denote-explore-count-keywords))))
+    (dashboard-insert-shortcut 'denote "d" "Denote:"))
+
+  (add-to-list 'dashboard-item-generators
+               '(denote . denote-explore-dashboard))
+
+  (add-to-list 'dashboard-items '(denote) t)
+
+  (add-to-list 'dashboard-item-shortcuts '(denote . "d"))
+#+end_src
+
+
+* Research
+** Reading
+*** PDF reader
+#+begin_src emacs-lisp
+  (use-package pdf-tools
+    :config
+    (setq pdf-view-display-size 1
+          pdf-view-midnight-colors '("#f8f8f2" . "#282a36"))
+    :init
+    (pdf-tools-install)
+    :bind
+    (:map pdf-view-mode-map ("M" . pdf-view-midnight-minor-mode)))
+#+end_src
+
+*** RSS Feeds
+Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the Zettelkasten folder) to list links to the relevant feeds. 
+
+#+begin_src emacs-lisp
+  ;; Elfeed RSS reader
+  (use-package elfeed
+    :config
+    (setq elfeed-db-directory (expand-file-name "elfeed" user-emacs-directory)
+          elfeed-show-entry-switch 'display-buffer)
+    :bind 
+    (("C-x w" . elfeed)
+     :map
+     elfeed-search-mode-map
+     ("n" . (lambda () (interactive) (next-line) (call-interactively 'elfeed-search-show-entry)))
+     ("p" . (lambda () (interactive) (previous-line) (call-interactively 'elfeed-search-show-entry)))
+     ("m" . (lambda () (interactive) (apply 'elfeed-search-toggle-all '(star))))))
+
+  (use-package elfeed-org
+    :config
+    (elfeed-org)
+    (setq rmh-elfeed-org-files
+          (list (concat org-directory "20220831T094726--elfeed-rss__config.org"))))
+#+end_src
+
+*** GPT
+#+begin_src elisp
+(use-package gptel
+ :config
+ (setq gptel-api-key "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"
+       gptel-default-mode 'org-mode))
+#+end_src
+
+** Music Player
+#+begin_src emacs-lisp
+  ;; Play music with Emacs
+  (use-package emms
+    :config
+    (require 'emms-setup)
+    (require 'emms-history)
+    (require 'emms-mpris)
+    (emms-all)
+    (emms-default-players)
+    (emms-mpris-enable)
+    :custom
+    (emms-source-file-default-directory "~/Music/")
+    (emms-directory (expand-file-name "emms" user-emacs-directory))
+    (emms-info-functions '(emms-info-tinytag)) ;; pip install tinytag
+    (emms-browser-covers 'emms-browser-cache-thumbnail-async)
+    (emms-browser-default-browse-type 'info-album)
+    (emms-playlist-buffer-name "*Music*")
+    :bind
+    (("<f5>" . emms-browser)
+     ("<M-f5>" . emms)
+     ("<XF86AudioPrev>" . emms-previous)
+     ("<XF86AudioNext>" . emms-next)
+     ("<XF86AudioPlay>" . emms-pause)))
+#+end_src
+
+** Taking Notes
+*** Org Mode Links
+#+begin_src elisp
+  (global-set-key (kbd "C-c l") 'org-store-link)
+#+end_src
+
+*** Denote
+#+begin_src elisp
+  (use-package denote
+    :config
+    (setq denote-directory org-directory
+          denote-date-prompt-use-org-read-date t)
+    (add-hook 'dired-mode-hook #'denote-dired-mode)
+    (set-face-attribute 'denote-faces-link nil :slant 'italic)
+    :bind
+    (("C-c d n" . denote)
+     ("C-c d d" . denote-date)
+     ("C-c d i" . denote-link-or-create)
+     ("C-c d l" . denote-link-find-file)
+     ("C-c d L" . denote-link-add-links)
+     ("C-c d b" . denote-link-find-backlink)
+     ("C-c d r" . denote-rename-file)
+     ("C-c d s" . denote-rename-file-using-front-matter)
+     ("C-c d k" . denote-keywords-add)
+     ("C-c d K" . denote-keywords-remove)
+     ("C-c d p" . denote-org-promote-heading-to-note)
+     ("C-c d D" . denote-org-dblock-insert-links)))
+
+  ;; Register Denote's Org dynamic blocks
+  (require 'denote-org-dblock)
+#+end_src
+
+**** Temporary fix for attachment links
+#+begin_src elisp
+  ;; Fix linking issues
+  (defun denote-get-path-by-id (id)
+    "Return absolute path of ID string in `denote-directory-files'."
+    (let ((files
+           (seq-filter
+            (lambda (file)
+              (and (denote-file-has-identifier-p file)
+                   (string-prefix-p id (file-name-nondirectory file))))
+            (denote-directory-files))))
+      (if (length< files 2)
+          (car files)
+        (seq-find
+         (lambda (file)
+           (let ((file-extension (file-name-extension file :period)))
+             (and (denote-file-is-note-p file)
+                  (or (string= (denote--file-extension denote-file-type)
+                               file-extension)
+                      (string= ".org" file-extension)
+                      (member file-extension (denote--extensions))))))
+         files))))
+#+end_src
+
+**** Denote Menu
+#+begin_src elisp
+  (use-package denote-menu
+    :bind (("C-c d m" . list-denotes)
+           :map denote-menu-mode-map
+           ("c"   . denote-menu-clear-filters)
+           ("r" . denote-menu-filter)
+           ("k" . denote-menu-filter-by-keyword)
+           ("e"   . denote-menu-export-to-dired)))
+#+end_src
+
+**** Explore Denote
+#+begin_src elisp
+  (add-to-list 'load-path "~/Documents/projects/emacs/denote-explore/")
+  (require 'denote-explore)
+  (let ((map global-map))
+    (define-key map (kbd "C-c d e c") #'denote-explore-count-notes)
+    (define-key map (kbd "C-c d e t") #'denote-explore-count-keywords)
+    (define-key map (kbd "C-c d e r") #'denote-explore-random-note)
+    (define-key map (kbd "C-c d e l") #'denote-explore-random-link)
+    (define-key map (kbd "C-c d e k") #'denote-explore-random-keyword))
+#+end_src
+
+**** Denote extensions
+#+begin_src elisp
+  (defun denote-org-promote-heading-to-note ()
+    "Promote the content of an Org Mode heading to a separate note."
+    (interactive)
+    (if-let* ((file (buffer-file-name))
+              (not (and (equal mode-name "Org")
+                        (denote-file-is-note-p file))))
+        (let ((title (substring-no-properties (org-get-heading))))
+          (org-back-to-heading)
+          (org-mark-element)
+          (let ((beg (region-beginning))
+                (end (region-end)))
+            (kill-region beg end)
+            (denote title (denote-retrieve-keywords-value file 'org) 'org)
+            (denote-link file)
+            (insert "\n")
+            (save-excursion
+              (insert (car kill-ring)))
+            (kill-line)
+            (end-of-buffer)))
+      (user-error "Note a Denote Org Mode file")))
+#+end_src
+
+*** Consult Notes
+#+begin_src elisp
+  (use-package consult-notes
+    :bind (("C-c d f" . consult-notes))
+    :custom (consult-notes-file-dir-sources
+             `(("Notes"       ?n ,denote-directory)
+               ("Attachments" ?a ,(concat denote-directory "attachments/"))
+               ("Photos"      ?p "~/Pictures/"))))
+#+end_src
+
+*** Org Capture
+#+begin_src elisp
+  ;; Org capture keyboard shortcut and templates
+  (global-set-key (kbd "C-c c") 'org-capture)
+
+  ;; Don't add last captured as bookmark
+  (setq org-capture-bookmark nil)
+
+  ;; Set default file for fleeting notes
+  (setq org-default-notes-file
+        (car (directory-files denote-directory t "inbox.*gtd")))
+
+  ;; Capture templates
+  (setq org-capture-templates
+        '(("f" "Fleeting note" item
+           (file+headline org-default-notes-file "Notes")
+           "- %?")
+          ("t" "New task" entry
+           (file+headline org-default-notes-file "Tasks")
+           "* TODO %i%?")
+          ("e" "Email task" entry
+           (file+headline org-default-notes-file "Tasks")
+           "* TODO %:fromname: %a %?\nDEADLINE: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))")))
+#+end_src
+
+
+** Referencing 
+*** BibTeX Mode
+#+begin_src emacs-lisp
+  ;; Bibliography files
+  (setq bibtex-files (directory-files
+                        (concat emacs-studio-documents-directory "library/")
+                        t "^[A-Za-z].+.bib$"))
+
+  (setq json-bib-files (directory-files
+                        (concat emacs-studio-documents-directory "library/")
+                        t "^[A-Za-z].+.json$"))
+  
+  ;; BibTeX mode settings
+  (setq bibtex-dialect "BibTeX"
+        bibtex-user-optional-fields
+        '(("keywords" "Keywords to describe the entry")
+          ("file"     "Link to document file."))
+        bibtex-include-OPTkey nil
+        bibtex-align-at-equal-sign t
+        bibtex-autokey-year-length 4
+        bibtex-autokey-titlewords 1
+        bibtex-autokey-titlewords-stretch 0
+        bibtex-autokey-titleword-length 4
+        bibtex-autokey-name-year-separator "_"
+        bibtex-autokey-year-title-separator "_"
+        bibtex-autokey-edit-before-use nil)
+#+end_src
+
+*** Citar
+#+begin_src elisp
+  (use-package citar
+    :no-require
+    :custom
+    (org-cite-global-bibliography (append bibtex-files json-bib-files))
+    (org-cite-insert-processor 'citar)
+    (org-cite-follow-processor 'citar)
+    (org-cite-activate-processor 'citar)
+    (citar-bibliography org-cite-global-bibliography)
+    (citar-at-point-function 'embark-act)
+    ;; optional: org-cite-insert is also bound to C-c C-x C-@
+    :bind (("C-c d o" . citar-open)
+           (:map org-mode-map
+                 :package org ("C-c b" . #'org-cite-insert)))
+    :hook
+    (org-mode . citar-capf-setup))
+#+end_src
+
+#+begin_src elisp
+  (setq citar-symbols
+        `((file ,(all-the-icons-faicon "file-o" :face 'all-the-icons-green :v-adjust -0.1) . " ")
+          (note ,(all-the-icons-material "speaker_notes" :face 'all-the-icons-blue :v-adjust -0.3) . " ")
+          (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " "))
+        citar-symbol-separator " ")
+#+end_src
+
+#+begin_src elisp
+  (use-package citar-embark
+    :after citar embark
+    :no-require
+    :config (citar-embark-mode))
+#+end_src
+
+*** Citar - Denote integration
+#+begin_src elisp
+  (add-to-list 'load-path "~/Documents/projects/emacs/citar-denote")
+  (require 'citar-denote)
+  (citar-denote-mode)
+  (setq citar-open-always-create-notes t
+        citar-denote-title-format "author-year-title")
+  (let ((map global-map))
+    (define-key map (kbd "C-c d c c") #'citar-create-note)
+    (define-key map (kbd "C-c d c o") #'citar-denote-open-note)
+    (define-key map (kbd "C-c d c d") #'citar-denote-dwim)
+    (define-key map (kbd "C-c d c a") #'citar-denote-add-citekey)
+    (define-key map (kbd "C-c d c k") #'citar-denote-remove-citekey)
+    (define-key map (kbd "C-c d c e") #'citar-denote-open-reference-entry)
+    (define-key map (kbd "C-c d c r") #'citar-denote-find-reference)
+    (define-key map (kbd "C-c d c f") #'citar-denote-find-citation)
+    (define-key map (kbd "C-c d c n") #'citar-denote-cite-nocite)
+    (define-key map (kbd "C-c d c m") #'citar-denote-reference-nocite))
+#+end_src
+
+*** Citar in BibTeX files
+- [[https://github.com/emacs-citar/citar/wiki/Citar-in-bibtex-files-with-Embark][Citar in bibtex files with Embark · emacs-citar/citar Wiki · GitHub]]
+
+#+begin_src elisp :tangle no
+  (defun bibtex-key-embark ()
+    (save-excursion  
+      (bibtex-beginning-of-entry)  
+      (when (looking-at bibtex-entry-maybe-empty-head)  
+        (cons 'bibtex-key
+              (bibtex-key-in-head)))))
+
+  (with-eval-after-load "embark"
+    (add-to-list 'embark-target-finders 'bibtex-key-embark)
+    (embark-define-keymap bibtex-key-embark-map
+      "Embark keymap for BibTeX files"
+      ("f" 'citar-open-files)
+      ("n" 'citar-open-notes)
+      ("r" 'citar-copy-reference))
+    (add-to-list 'embark-keymap-alist
+                 '(bibtex-key . bibtex-key-embark-map)))
+#+end_src
+
+*** Partial activation of org-ref
+#+begin_src elisp :tangle no :eval no
+  (add-to-list 'load-path "~/Documents/emacs/org-ref")
+  (use-package hydra)
+  (require 'org-ref-label-link)
+  (require 'org-ref-misc-links)
+  (require 'org-ref-ref-links)
+#+end_src
+
+
+* Writing
+** Basic Settings
+The default behaviour for Emacs is that the scroll (page) up and down functions don't move all the way to the top or bottom of the buffer. The first variable fixes this. If you try to scroll beyond the limits of the buffer, Emacs will warn you.
+
+#+begin_src elisp
+  ;; Scroll to the first and last line of the buffer
+  (setq scroll-error-top-bottom t)
+
+  ;; Wrapping sentences
+  (add-hook 'text-mode-hook 'visual-line-mode)
+
+  ;; Erase when overwriting seleced text
+  (delete-selection-mode t)
+
+  ;; Copy the system clipboard to the kill ring
+  (setq save-interprogram-paste-before-kill t)
+#+end_src
+
+** Spelling and Grammar
+*** Flyspell
+#+begin_src elisp
+  (use-package flyspell
+    :init
+    (setq ispell-silently-savep t
+          flyspell-case-fold-duplications t
+          flyspell-issue-message-flag nil
+          flyspell-default-dictionary "en_AU"
+          ispell-program-name "hunspell")
+    :bind (("M-<f7>" . flyspell-buffer)
+           ("C-:"    . flyspell-auto-correct-word))
+    :hook
+    (text-mode . flyspell-mode)
+    (prog-mode . flyspell-prog-mode))
+
+  (use-package flyspell-correct
+    :after (flyspell)
+    :bind (("C-;" . flyspell-auto-correct-previous-word)
+           ("<f7>" . flyspell-correct-wrapper)))
+#+end_src
+
+**** Switch dictionary
+#+begin_src emacs-lisp 
+  (defun pp-switch-dictionary()
+    "Switch between Dutch and Australian dictionaries."
+    (interactive)
+    (let* ((dic ispell-current-dictionary)
+           (change (if (string= dic "en_AU") "nederlands" "en_AU")))
+      (ispell-change-dictionary change)
+      (message "Dictionary switched from %s to %s" dic change)))
+
+  (global-set-key (kbd "C-<f7>") 'pp-switch-dictionary)
+
+  ;; Avoid conflict with Embark
+  ;; (define-key flyspell-mode-map (kbd "C-.") (kbd "C-:"))
+  (eval-after-load 'flyspell
+  '(define-key flyspell-mode-map (kbd "C-.") nil))
+#+end_src
+
+*** Grammar
+#+begin_src emacs-lisp
+  (use-package writegood-mode 
+    :bind
+    (("C-c g" . writegood-mode)
+     ("C-c C-g g" . writegood-grade-level)
+     ("C-c C-g e" . writegood-reading-ease))
+    :hook org-mode)
+#+end_src
+
+*** Dictionary
+#+begin_src elisp
+  (setq dictionary-server "dict.org")
+  (global-set-key (kbd "M-<f8>") 'dictionary-search)
+#+end_src
+
+*** Thesaurus
+#+begin_src emacs-lisp
+  ;; Merriam-Webster Thesaurus
+  (use-package mw-thesaurus
+    :bind
+    (("<f8>" . mw-thesaurus-lookup-at-point)))
+#+end_src
+
+** Text Completion
+*** Insert web links
+#+begin_src emacs-lisp
+  ;; org web tools
+  (use-package org-web-tools
+    :bind (("C-x p l" . org-web-tools-insert-link-for-url)))
+#+end_src
+
+*** YaSnippet
+#+begin_src elisp
+  (use-package yasnippet
+    :config
+    (yas-global-mode 1))
+#+end_src
+
+*** Org mode list items
+#+begin_src elisp
+  (use-package org-autolist
+    :hook (org-mode . org-autolist-mode))
+#+end_src
+
+** Distraction-Free Writing
+[[https://github.com/rnkn/olivetti][Olivetti mode]] is a minor mode that enables writing without distractions. This mode recreaates the old typewriter-feel by centering the text in the buffer at a specified with, which I set to 100 characters.
+
+#+begin_src emacs-lisp
+  (use-package olivetti
+    :config
+    (defun distraction-free ()
+      "Distraction-free writing environment using Olivetti package."
+      (interactive)
+      (if (equal olivetti-mode nil)
+          (progn
+            (window-configuration-to-register 1)
+            (delete-other-windows)
+            (text-scale-set 2)
+            (olivetti-mode t))
+        (progn
+          (jump-to-register 1)
+          (olivetti-mode 0)
+          (text-scale-set 0))))
+    :bind
+    (("<f9>" . distraction-free)))
+#+end_src
+
+** Writing Theatrical Scripts
+#+begin_src emacs-lisp
+  (use-package fountain-mode)
+#+end_src
+
+* Data Science
+** Generic Programming Mode settings
+#+begin_src elisp
+    ;; Line numbers
+  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+
+  ;; Commenting
+  (global-set-key (kbd "C-c C-;") 'comment-region)
+  (global-set-key (kbd "C-c C-:") 'uncomment-region)
+
+  (use-package flycheck
+    :init
+    (global-flycheck-mode t))
+
+  (use-package elisp-lint)
+
+  (use-package smartparens
+    :config
+    (require 'smartparens-config)
+    (smartparens-global-mode))
+#+end_src
+
+** Parenthesis
+#+begin_src elisp
+  (use-package rainbow-delimiters
+    :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+** Coloured colour tags
+Colour HTML colour codes #864bf9.
+
+#+begin_src elisp
+  (use-package rainbow-mode
+    :init
+    (rainbow-mode))
+#+end_src
+
+** Structure Templates
+#+begin_src elisp
+  ;; Add structure template for various languages
+  (with-eval-after-load 'org
+    (add-to-list 'org-structure-template-alist '("se" . "src elisp\n"))
+    (add-to-list 'org-structure-template-alist '("sp" . "src python\n"))
+    (add-to-list 'org-structure-template-alist '("sr" . "src R\n"))
+    (add-to-list 'org-structure-template-alist '("ss" . "src shell\n"))) 
+#+end_src
+
+** Org Babel
+#+begin_src emacs-lisp
+  ;; Org Babel
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)   
+     (R       . t)
+     (python  . t)
+     (gnuplot . t)
+     (julia    . t)
+     (shell   . t)))
+
+  (setq org-confirm-babel-evaluate nil)
+
+  (defun org-indent-block-jump ()
+    "Jump to block head before indenting the source block."
+    (interactive)
+    (save-excursion
+      (org-babel-goto-src-block-head)
+2      (org-indent-block)))
+
+  ;; Manage source code blocks
+  (global-set-key (kbd "C-c C-v C-h") 'org-hide-block-all)
+  (global-set-key (kbd "C-c C-v C-/") 'org-indent-block-jump)
+#+end_src
+** Magit
+#+begin_src emacs-lisp
+  ;; Magit
+  (use-package magit
+    :bind
+    (("C-x g" . magit-status)))
+#+end_src
+
+** Emacs Speaks Statistics
+#+begin_src elisp
+  ;; Emacs Speaks Statistics
+  (use-package ess
+    :custom
+    (ess-use-company t)
+    (ess-ask-for-ess-directory nil)
+    (ess-indent-with-fancy-comments nil))
+#+end_src
+
+* Publishing
+** Org Mode Export Preferences
+#+begin_src emacs-lisp
+  (setq org-num-skip-unnumbered t
+        org-export-with-drawers 'nil
+        org-export-with-smart-quotes t
+        org-export-with-todo-keywords 'nil
+        org-export-with-broken-links t
+        org-export-with-toc 'nil)
+#+end_src
+
+** Org-Cite Export
+See also:
+- [[https://blog.tecosaur.com/tmio/2021-07-31-citations.html][Introducing citations!]]
+- [[https://kristofferbalintona.me/posts/202206141852/][Citations in org-mode: Org-cite and Citar | Kristoffer Balintona]]
+
+#+begin_src elisp
+  ;; Export citations with Org Mode
+  (require 'oc-natbib)
+  (require 'oc-csl)
+
+  (setq org-cite-csl-styles-dir "~/Documents/library/csl/"
+	org-cite-export-processors
+	'((latex natbib "apalike2" "authoryear")
+	  (t     csl "apa6.csl")))
+#+end_src
+
+** MS Word
+Setting the =org-odt-preferred-output-format= variable lets you export an org file directly to Word. This only works when you have LibreOffice installed.
+
+#+begin_src emacs-lisp
+  ;; Enable export to MS Word
+  (setq org-odt-preferred-output-format "doc")
+#+end_src
+
+
+** PDF Export
+#+begin_src emacs-lisp
+  ;; LaTeX
+  (require 'ox-latex)
+  ;; (setq org-latex-pdf-process
+  ;;       '("pdflatex -interaction nonstopmode -output-directory %o %f"
+  ;;         "bibtex %b"
+  ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+  ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
+
+
+  (setq org-latex-pdf-process
+        '("pdflatex -interaction nonstopmode -output-directory=%o"
+          "bibtex %b"
+          "pdflatex -shell-escape -interaction nonstopmode -output-directory=%o"
+          "pdflatex -shell-escape -interaction nonstopmode -output-directory=%o"))
+
+  ;; Clean temporary files afer export
+  (setq org-latex-logfiles-extensions
+        (quote ("lof" "lot" "tex~" "aux" "idx" "log" "out"
+                "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk"
+                "blg" "brf" "fls" "entoc" "ps" "spl" "bbl"
+                "tex" "bcf")))
+
+  ;; Source code export
+  (setq org-latex-listings 'minted
+        org-latex-minted-options nil)
+#+end_src
+
+*** Templates
+**** Default
+#+begin_src emacs-lisp
+  (with-eval-after-load 'ox-latex
+    (add-to-list 'org-latex-classes '("article"
+                                      "\\documentclass[10pt]{article}
+    \\usepackage{tgpagella,eulervm}
+    \\usepackage{nicefrac}"
+                                      ("\\section{%s}" .       "\\section*{%s}")
+                                      ("\\subsection{%s}" .    "\\subsection*{%s}")
+                                      ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                                      ("\\paragraph{%s}" .     "\\paragraph*{%s}")
+                                      ("\\subparagraph{%s}" .  "\\subparagraph*{%s}"))))
+#+end_src
+
+**** eBook
+#+begin_src emacs-lisp
+  ;; ebooks using memoir
+  (with-eval-after-load 'ox-latex
+    (add-to-list 'org-latex-classes '("ebook"
+                                      "\\documentclass[11pt, oneside]{memoir}
+  \\setstocksize{9in}{6in}
+  \\settrimmedsize{\\stockheight}{\\stockwidth}{*}
+  \\setlrmarginsandblock{2cm}{2cm}{*} % Left and right margin
+  \\setulmarginsandblock{2cm}{2cm}{*} % Upper and lower margin
+  \\checkandfixthelayout
+  \\usepackage{times}
+  \\OnehalfSpacing
+  \\usepackage[authoryear]{natbib}
+  \\bibliographystyle{apalike}
+  \\setlength{\\bibsep}{1pt}
+  \\usepackage[raggedright]{sidecap}
+  \\setsecheadstyle{\\normalfont \\raggedright \\textbf}
+  \\setsubsecheadstyle{\\normalfont \\raggedright \\emph}
+  \\usepackage{subcaption} 
+  \\usepackage[font={small, it}]{caption}
+  \\captionsetup[subfigure]{justification=centering}
+  \\usepackage{pdfpages}
+  \\usepackage[unicode=true,
+      bookmarks=true,bookmarksnumbered=false,bookmarksopen=true,
+      bookmarksopenlevel=1, breaklinks=true,pdfborder={0 0 0},backref=false,colorlinks=false,pdfborderstyle={/S/U/W .5}, allbordercolors={.8 .8 .8}]{hyperref}
+  \\pagestyle{myheadings}
+  \\setcounter{tocdepth}{0}
+  \\usepackage{ccicons}
+  \\usepackage{nicefrac}
+  "
+                                      ("\\chapter{%s}" . "\\chapter*{%s}")
+                                      ("\\section{%s}" . "\\section*{%s}")
+                                      ("\\subsection{%s}" . "\\subsection*{%s}")
+                                      ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
+#+end_src
+
+**** Magic Trick Sheets
+#+begin_src emacs-lisp
+  (with-eval-after-load 'ox-latex
+    ;; Magic tricks
+    (add-to-list 'org-latex-classes '("magictrick"				  
+                                      "\\documentclass[11pt, a4paper, twocolumn, twoside]{article}
+  \\usepackage{ccicons}
+  \\usepackage{pdfpages}
+  \\usepackage{times}
+  \\usepackage{helvet}
+  \\usepackage{geometry}
+  \\geometry{a4paper, total={170mm,250mm}, left=20mm, top=30mm}
+  % header 2008 x 332 px
+  \\usepackage{titlesec}
+  \\titleformat{\\section}
+    {\\bfseries}{\\thesection}{1em}{}
+  \\titleformat{\\subsection}
+    {\\itshape}{\\thesection}{1em}{}
+  \\usepackage{fancyhdr}
+  \\usepackage[font={small, it}, labelformat=empty]{caption}
+  \\usepackage[hidelinks]{hyperref}
+  \\pagestyle{fancy}
+  \\renewcommand{\\headrulewidth}{0pt}
+  \\renewcommand{\\footrulewidth}{0pt}
+  \\setlength{\\parskip}{1em}
+  \\renewcommand{\\baselinestretch}{1.1}
+  \\setlength\\headheight{100.0pt}
+  \\addtolength{\\textheight}{-100.0pt}
+  \\fancyhead[LO]{\\Large{\\textsf{Magic Perspectives Presents}} \\includegraphics[width=\\textwidth]{header}}
+  \\fancyhead[LE]{\\includegraphics[width=0.5\\textwidth]{header}}
+  \\lfoot{Peter Prevos}
+  \\rfoot{\\href{https://magicperspectives.net}{magicperspectives.net}}"
+                                      ("\\section{%s}" . "\\section*{%s}")
+                                      ("\\subsection{%s}" . "\\subsection*{%s}"))))
+#+end_src
+
+**** CRC Publishing
+#+begin_src emacs-lisp
+  (with-eval-after-load 'ox-latex
+    ;; CRC Publishing template
+    (add-to-list
+     'org-latex-classes
+     '("crc"
+       "\\documentclass[krantz2]{krantz}
+          \\usepackage{lmodern}
+          \\usepackage[authoryear]{natbib}
+          \\usepackage{nicefrac}
+          \\usepackage[bf,singlelinecheck=off]{caption}
+          \\captionsetup[table]{labelsep=space}
+          \\captionsetup[figure]{labelsep=space}
+          \\usepackage{Alegreya}
+          \\usepackage[scale=.8]{sourcecodepro}
+          \\usepackage[breaklines=true]{minted}
+          \\usepackage{rotating}
+          \\usepackage[notbib, nottoc,notlot,notlof]{tocbibind}
+          \\usepackage{amsfonts, tikz, tikz-layers}
+          \\usetikzlibrary{fadings, quotes, shapes, calc, decorations.markings}
+          \\usetikzlibrary{patterns, shadows.blur}
+          \\usetikzlibrary{shapes,shapes.geometric,positioning}
+          \\usetikzlibrary{arrows, arrows.meta, backgrounds}
+          \\usepackage{imakeidx} \\makeindex[intoc]
+          \\renewcommand{\\textfraction}{0.05}
+          \\renewcommand{\\topfraction}{0.8}
+          \\renewcommand{\\bottomfraction}{0.8}
+          \\renewcommand{\\floatpagefraction}{0.75}
+          \\renewcommand{\\eqref}[1]{(Equation \\ref{#1})}
+          \\renewcommand{\\LaTeX}{LaTeX}"
+       ("\\chapter{%s}" . "\\chapter*{%s}")
+       ("\\section{%s}" . "\\section*{%s}")
+       ("\\subsection{%s}" . "\\subsection*{%s}")
+       ("\\subsubsection{%s}" . "\\paragraph*{%s}"))))
+#+end_src
+
+**** Paperback
+#+begin_src emacs-lisp
+  ;; 6 by 9 paperback
+  (add-to-list
+   'org-latex-classes
+   '("trade"
+     "\\documentclass[11pt, twoside]{memoir}
+      \\setstocksize{9in}{6in}
+      \\settrimmedsize{\\stockheight}{\\stockwidth}{*}
+      \\setlrmarginsandblock{2cm}{2cm}{*} % Left and right margin
+      \\setulmarginsandblock{2cm}{2cm}{*} % Upper and lower margin
+      \\checkandfixthelayout
+      \\setcounter{tocdepth}{0}
+      \\OnehalfSpacing
+      \\usepackage{times}
+      \\chapterstyle{bianchi}
+      \\setsecheadstyle{\\normalfont \\raggedright \\textbf}
+      \\setsubsecheadstyle{\\normalfont \\raggedright \\emph}
+      \\setsubsubsecheadstyle{\\normalfont\\centering}
+      \\usepackage[font={small, it}]{caption}
+      \\usepackage{subcaption}
+      \\captionsetup[subfigure]{justification=centering}
+      \\usepackage{pdfpages}
+      \\pagestyle{myheadings}
+      \\usepackage{ccicons}
+      \\usepackage{nicefrac}
+      \\usepackage[authoryear]{natbib}
+      \\bibliographystyle{apalike}
+      \\usepackage{nohyperref}
+      \\usepackage{tikz}
+      \\usetikzlibrary{shapes.geometric, calc, knots}
+      \\usepackage{svg}"
+     ("\\chapter{%s}" . "\\chapter*{%s}")
+     ("\\section{%s}" . "\\section*{%s}")
+     ("\\subsection{%s}" . "\\subsection*{%s}")
+     ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+     ("\\paragraph{%s}" . "\\paragraph*{%s}")
+     ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+#+end_src
+
+**** APA 6
+#+begin_src emacs-lisp
+   ;; American Psychological Association papers
+   (add-to-list 'org-latex-classes '("apa6"
+   "\\documentclass[a4paper, jou, 11pt]{apa6}
+   \\usepackage[nodoi]{apacite}
+   \\usepackage[british]{babel}
+   \\usepackage{inputenc}
+   \\usepackage{amsmath}
+   \\usepackage{graphicx}
+   \\usepackage{csquotes}
+   \\usepackage[hyphens]{url}
+   \\usepackage[T1]{fontenc}
+   \\usepackage{lmodern}
+   \\usepackage{hyperref}"
+   ("\\section{%s}" . "\\section*{%s}")
+   ("\\subsection{%s}" . "\\subsection*{%s}")))
+ #+end_src
+
+** Hugo
+#+begin_src emacs-lisp
+  (defun org-hugo-follow-link (link)
+    "Follow Hugo link shortcodes"
+    (message "sex!")
+    (org-link-open-as-file
+     (string-trim link "{{% ref " " %}}")))
+
+  ;; New link type for Org-Hugo internal links
+  (org-link-set-parameters
+   "hugo"
+   :complete (lambda ()
+               (concat "{{% ref "
+                       (file-name-nondirectory
+                        (read-file-name "File: "))
+                       " %}}"))
+   :follow #'org-hugo-followlink)
+#+end_src
+
+
+* Productivity
+** Calendar Settings
+#+begin_src elisp
+  (setq calendar-date-style 'european
+        calendar-location-name "Kangaroo Flat"
+        calendar-longitude 144.2276057779676
+        calendar-latitude -36.78533817695306)
+#+end_src
+
+*** Holidays
+Emacs by default shows too many irrelevant holidays, so I remove them all and replace them with my own.
+
+#+begin_src emacs-lisp
+  (setq holiday-general-holidays nil
+        holiday-christian-holidays nil
+        holiday-hebrew-holidays nil
+        holiday-islamic-holidays nil
+        holiday-bahai-holidays nil
+        holiday-oriental-holidays nil)
+#+end_src
+
+These are the Dutch, Australian and atheist public holidays that are relevant to me.
+
+#+begin_src emacs-lisp
+  (setq holiday-other-holidays
+        '(;; Dutch holidays
+          (holiday-sexp
+           '(if (zerop (calendar-day-of-week (list 4 27 year)))
+                (list 4 26 year)
+              (list 4 27 year))
+           "Koningsdag")
+          (holiday-fixed 5 4 "Dodenherdenking")
+          (holiday-fixed 5 5 "Bevrijdingsdag")
+          (holiday-fixed 12 5 "Sinterklaas")
+          (holiday-fixed 12 25 "Eerste kerstdag")
+          (holiday-fixed 12 26 "Tweede kerstdag")
+          ;; Feestdagen gerelateerd aan Pasen
+          (holiday-easter-etc -49 "Carnaval")
+          (holiday-easter-etc -48 "Carnaval")
+          (holiday-easter-etc -47 "Carnaval")
+          (holiday-easter-etc -2 "Goede Vrijdag")
+          (holiday-easter-etc 0 "Eerste Paasdag")
+          (holiday-easter-etc +1 "Tweede Paasdag")
+          (holiday-easter-etc +39 "Hemelvaart")
+          (holiday-easter-etc +49 "Eerste Pinksterdag")
+          (holiday-easter-etc +50 "Tweede Pinksterdag")
+          ;; Overige feestdagen met een variabele datum
+          (holiday-float 5 0 2 "Moederdag")
+          (holiday-float 6 0 3 "Vaderdag")
+          (holiday-float 9 2 3 "Prinsjesdag")
+          ;; Australian Public Holidays
+          (holiday-fixed 1 1 "New Year's Day")
+          (holiday-fixed 1 26 "Australia Day")
+          (holiday-float 3 1 2 "Labour Day")
+          (holiday-fixed 4 25 "Anzac Day")
+          (holiday-float 6 1 2 "King's Birthday")
+          (holiday-float 11 2 1 "Melbourne Cup")
+          ;; Atheist Holidays
+          (holiday-fixed 7 22 "Pi Approximation Day")
+          (holiday-fixed 4 1 "April Fool's Day")
+          (holiday-float nil 6 nil "Friday the 13th" 13)
+          ;; Personal holidays
+          (holiday-fixed 8 26 "Wedding Anniversary")
+          (holiday-fixed 1 9  "Sue's Birthday")))
+#+end_src
+
+
+** Getting Things Done
+[[info:org#Workflow states][Workflow states]] indicate the status of actions. Some actions are logged an others require a comment. Logging for [[https://orgmode.org/manual/Repeated-tasks.html][repeated actions]] is disabled.
+
+#+begin_src emacs-lisp
+  ;; Getting Things Done
+  ;; Workflow states
+  (setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)"
+                                      "WAITING(w@/!)"
+                                      "PROJECT(p)" "GOAL(g)"
+                   "|"
+                   "DONE(d/!)" "CANCELLED(c@/!)")))
+
+  ;; Don't log state chages of repeated tasks
+  ;; Log changes in the logbook drawer
+  (setq org-log-repeat nil
+        org-log-into-drawer t
+        org-log-done 'time)
+#+end_src
+
+** Agenda settings
+#+begin_src emacs-lisp
+  ;; Agenda settings
+  (setq org-agenda-block-seperator ""
+        org-agenda-window-setup 'current-window
+        org-agenda-skip-deadline-if-done t
+        org-agenda-skip-scheduled-if-done t
+        org-agenda-include-diary t
+        calendar-week-start-day 1
+        org-log-repeat nil
+        org-agenda-start-with-follow-mode t
+        org-agenda-remove-tags t
+        org-agenda-restore-windows-after-quit t
+        org-agenda-custom-commands
+        '(("n" "Netherlands" tags-todo "nl")
+          ("h" "Personal"
+           ;; filter by personal categories?
+           ((agenda "" ((org-agenda-span 3)
+                        (org-agenda-start-on-weekday nil)))
+            (todo "NEXT")
+            (todo "WAITING")
+            (stuck))
+           ((org-agenda-files
+             (denote-directory-files-matching-regexp "_gtd")))
+           )
+          ("p" "Projects"
+           ((todo "PROJECT")
+            (stuck "" ((org-agenda-sorting-strategy
+                        '(alpha-up priority-down))))))
+          ("c" "Work"
+           ;; filter by work categories?
+           ((agenda "" ((org-agenda-span 7)
+                        (org-agenda-start-on-weekday 1)))
+            (todo "NEXT")
+            (todo "WAITING")
+            (stuck))
+           ((org-agenda-files
+             (denote-directory-files-matching-regexp "_cw.*_gtd")))))
+        org-stuck-projects '("/PROJECT"
+                             ("NEXT" "WAITING")
+                             nil
+                             "SCHEDULED\\|DEADLINE")
+        org-archive-location "~/Documents/archive/gtd-archive.org::* From %s")
+
+  (global-set-key (kbd "C-c a") 'org-agenda)
+#+end_src
+
+*** Org agenda from Denotes
+#+begin_src emacs-lisp
+  (defun denote-pp-refresh-agenda-list ()
+    (interactive)
+    (setq org-agenda-files
+          (denote--directory-files-matching-regexp "_gtd")))
+
+  (denote-pp-refresh-agenda-list)
+  (global-set-key (kbd "C-c d p") 'denote-pp-refresh-agenda-list)
+#+end_src
+
+*** Idle Agenda
+#+begin_src elisp
+  (use-package idle-org-agenda
+    :after
+    org-agenda
+    :custom
+    (idle-org-agenda-key "h")
+    (idle-org-agenda-interval 600)
+    :config
+    (idle-org-agenda-mode))
+#+end_src
+
+* Communicating
+** Email
+Install and configure =mu= and =offlineimap= before using this configuration: [[denote:20220806T055538][Email Configuration]]
+
+#+begin_src elisp
+  ;; Email configuration
+  (use-package mu4e
+    :ensure nil
+    :config
+    (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
+    (require 'mu4e)
+    (setq
+     ;; Set identity
+     user-full-name "Peter Prevos"
+     user-mail-address "peter@prevos.net"
+     ;; Email folders
+     mu4e-sent-folder   "/prevos.net/INBOX.Sent"
+     mu4e-drafts-folder "/prevos.net/INBOX.Drafts"
+     mu4e-trash-folder  "/prevos.net/INBOX.Deleted Items"
+     mu4e-refile-folder "/prevos.net/INBOX.Archive"
+     mu4e-attachment-dir "~/Downloads/"
+     ;; Synchronise mailboxes
+     mu4e-get-mail-command "offlineimap"
+     mu4e-update-interval 1800
+     ;;  Reading
+     mu4e-view-show-images t
+     mu4e-confirm-quit nil
+     ;; smtp mail setting
+     message-send-mail-function 'smtpmail-send-it
+     smtpmail-smtp-server "mail.prevos.net"
+     smtpmail-smtp-service 465
+     smtpmail-stream-type 'ssl
+     message-kill-buffer-on-exit t
+     ;; Composing messages
+     mail-user-agent 'mu4e-user-agent
+     mu4e-compose-format-flowed t
+     message-signature-separator ""
+     mu4e-compose-signature (concat
+                             "Dr Peter Prevos\n"
+                             "---------------\n"
+                             "peterprevos.com\n")
+     ;; don't keep message buffers around
+     message-kill-buffer-on-exit t)
+    (add-to-list ' mu4e-bookmarks
+                 (make-mu4e-bookmark
+                  :name "Inboxe(s)"
+                  :query "maildir:/prevos.net/INBOX"
+                  :key ?i))
+    (add-to-list 'mu4e-view-actions
+                 '("ViewInBrowser" . mu4e-action-view-in-browser) t)
+    :bind (("<XF86Mail>" . mu4e)
+           ("C-x m" . mu4e)
+           ("C-x M" . mu4e-compose-new)
+           :map mu4e-headers-mode-map
+           ("C-c c" . mu4e-org-store-and-capture)
+           :map mu4e-view-mode-map
+           ("C-c c" . mu4e-org-store-and-capture)))
+#+end_src
+
+** Mastodon
+#+begin_src elisp
+  (use-package mastodon
+    :ensure t
+    :config
+    (mastodon-discover)
+    (setq mastodon-instance-url "https://aus.social/"
+          mastodon-active-user "danderzei"))
+#+end_src
+
+
