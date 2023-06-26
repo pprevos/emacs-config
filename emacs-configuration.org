@@ -3,24 +3,26 @@
 
 This file contains an annotated configuration for Emacs. The basic philosophy is to stay as close as vanilla Emacs as is humanly bearable.
 
-Org Babel is the package that runs [[info:org#Evaluating Code Blocks][evaluates code blocks]] within an Org mode file. By default, it will ask for confirmation each time you execute a line. This snippet nullifies this behaviour.
+To create the configuration file, use the ~org-babel-tangle~ function (=C-c C-v C-t=).
+
+Org Babel is the package that [[info:org#Evaluating Code Blocks][evaluates code blocks]] within an Org mode file. By default, it will ask for confirmation each time you execute a source block. This snippet nullifies this behaviour. It is not added (tangled) to the configuration.
 
 #+begin_src emacs-lisp :tangle no
   ;; Trust all code embedded in Org files
   (setq org-confirm-babel-evaluate nil)
 #+end_src
 
-This configuration is divided in functional sections with a focus on writing prose and data science code.
+This configuration is divided in functional sections with a focus on writing prose and data science code. Each section is documented with links to relevant parts of the Emacs documentation or package website. This configuration is based on Emacs 28.2
 
 * Basic Configuration
 This section provide the basic configuration for Emacs package management, cursor movement, completion and other fundamental aspects.
 
-** Packages
+** Package Management
 This section enables the MELPA package archive and initialises the package management system.
 
-The [[info:use-package#Top][use-package]] library provides a tidy method to write init files in Emacs. The =use-package-always-ensure= option will install the package if it is not yet available.
+The [[info:use-package#Top][use-package]] library provides a tidy method to write init files in Emacs. The =use-package-always-ensure= option will install the package if it is not yet available, preventing having to add =:ensure t= to every package call.
 
-You can install, remove or refresh [[info:emacs#packages][packages]] with the =list-packages= function.
+[[info:elisp#Native Compilation][Native compilation]] increases Emacs efficiency by compiling each package upon installation.
 
 #+begin_src elisp
   ;; Set package archives
@@ -44,12 +46,12 @@ You can install, remove or refresh [[info:emacs#packages][packages]] with the =l
 #+end_src
 
 ** Configuration files
-Emacs includes a menu-driven configuration system that writes settings to the init file on the fly. This code snippet separates the manual init file (=init.el=) from the automated version (=config.el=). The custom configuration file is loaded first. Any settings in the =init.el= file will thus override the configuration in the [[info:emacs#Saving Customizations][customisation file]].
+Emacs includes a menu-driven configuration system that writes settings to the init file on the fly. This code snippet separates the manually written init file (=init.el=) from the automated version (=custom.el=). The custom configuration file is loaded first. Any settings in the =init.el= file will thus override the configuration in the [[info:emacs#Saving Customizations][customisation file]].
 
 #+begin_src emacs-lisp
   ;; Custom settings in a separate file and load the custom settings
   (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
-  
+
   (when (file-exists-p custom-file)
     (load custom-file))
 #+end_src
@@ -76,7 +78,7 @@ The [[info:emacs#Quitting][escape key]] has to be pressed three time by default,
 #+end_src
 
 *** Nullify common CUA Windows keys
-I am forced to use Windows at work, so these keybindings are in my muscle memory and do something very different in Emacs. To avoid confusion with CUA systems, =C-z= and =C-v= are disabled.  This code also adds the a more convenient key chord to remove a frame.
+I am forced to use Windows at work, so these keybindings are in my muscle memory and do something very different in Emacs. To avoid confusion with CUA systems, =C-z= and =C-v= are disabled.  This code also adds the a more convenient key chord to remove a frame whe working with the [[info:emacs:][Emacs client]].
 
 #+begin_src elisp
   ;; Change keyboard defaults
@@ -122,7 +124,8 @@ The [[https://github.com/lukhas/buffer-move/blob/master/buffer-move.el][buffer-m
            ("C-s-<down>"  . buf-move-down)))
 #+end_src
 
-*** Spliiting windows vertically
+*** Splitting windows vertically
+The ~split-with-threhold~ variable informs how Emacs splits windows. Setting it to 80 forces vertical splits in more cases.
 
 #+begin_src elisp
   ;; Force vertical window split
@@ -172,6 +175,8 @@ This package enables [[https://github.com/minad/marginalia][marginala]] to minib
 #+end_src
 
 ** Consult
+The [[https://github.com/minad/consult][Consult package]] provides search and navigation commands based on the Emacs completion function completing-read.
+
 #+begin_src elisp
   ;; Consult convenience functions
   (use-package consult
@@ -199,7 +204,11 @@ This package enables [[https://github.com/minad/marginalia][marginala]] to minib
 #+end_src
 
 ** Help Functions
+Emacs is a self-documenting editor. Several packages exist to make it easier to find your way around Emacs.
+
 *** Which Key?
+The [[https://github.com/justbur/emacs-which-key][which-key package]] helps to discover Emacs commands by providing a popup window when you press part of a shortcut, e.g. =C-x=.
+
 #+begin_src elisp
   ;; Which key to help discovery
   (use-package which-key
@@ -208,6 +217,8 @@ This package enables [[https://github.com/minad/marginalia][marginala]] to minib
 #+end_src
 
 *** Improved help buffers
+
+
 #+begin_src emacs-lisp
   ;; Improved help buffers
   (use-package helpful
@@ -221,6 +232,8 @@ This package enables [[https://github.com/minad/marginalia][marginala]] to minib
 
 ** File Management
 *** Default folders
+I use these default folders to configure my note-taking and bibliography management tools. Emacs Studio is the tentative name of my configuration.
+
 #+begin_src emacs-lisp
   ;; File Management
 
@@ -235,20 +248,24 @@ This package enables [[https://github.com/minad/marginalia][marginala]] to minib
     :ensure nil
     :commands (dired dired-jump)
     :custom
-    (dired-listing-switches
-     "-goah --group-directories-first --time-style=long-iso")
+    (dired-listing-switches "-goah --group-directories-first --time-style=long-iso")
     (dired-dwim-target t)
     (delete-by-moving-to-trash t))
 #+end_src
 
 **** Single buffer
+Dired has the slightly annoying habit to create many buffers as you navigate through your folders. The [[https://codeberg.org/amano.kenji/dired-single][dired-single package]] changes this behaviour. 
+
 #+begin_src elisp
   (use-package dired-single
     :bind
-    (:map dired-mode-map
-          ("C-<up>"  . dired-single-up-directory)
-          ("^"       . dired-single-up-directory)
-          ("<enter>" . dired-single-buffer)))
+    :init
+    (define-key dired-mode-map [remap dired-find-file]
+      'dired-single-buffer)
+    (define-key dired-mode-map [remap dired-mouse-find-file-other-window]
+      'dired-single-buffer-mouse)
+    (define-key dired-mode-map [remap dired-up-directory]
+      'dired-single-up-directory))
 #+end_src
 
 **** Hide dotfiles
@@ -485,40 +502,6 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
                               :face 'font-lock-keyword-face))
 #+end_src
 
-*** Denote Dashboard
-[[https://github.com/emacs-dashboard/emacs-dashboard/issues/464][Question on creating dashboard item link · Issue #464 · emacs-dashboard/emacs-dashboard · GitHub]]
-
-#+begin_src emacs-lisp
-  ;; Add denote statistics
-  (defun denote-explore-dashboard (list-size)
-    "Helper function to display Denote summary on the Emacs Dashboard.
-    LIST-SIZE is a dummy variable required by the dashboard package."
-    (dashboard-insert-heading "Denote:"
-                              "d"
-                              (all-the-icons-octicon
-                               "file-text"
-                               :height 1.2
-                               :v-adjust 0.0
-                               :face 'dashboard-heading))
-    (let ((prefix (concat "    "
-                          (all-the-icons-octicon
-                           "primitive-dot"
-                           :height 1.0 :v-adjust 0.01)
-                          "   ")))
-      (insert "\n")
-      (insert (concat prefix (denote-explore-count-notes) "\n"))
-      (insert (concat prefix (denote-explore-count-keywords))))
-    (dashboard-insert-shortcut 'denote "d" "Denote:"))
-
-  (add-to-list 'dashboard-item-generators
-               '(denote . denote-explore-dashboard))
-
-  (add-to-list 'dashboard-items '(denote) t)
-
-  (add-to-list 'dashboard-item-shortcuts '(denote . "d"))
-#+end_src
-
-
 * Research
 ** Reading
 *** PDF reader
@@ -561,7 +544,7 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
 #+begin_src elisp
 (use-package gptel
  :config
- (setq gptel-api-key "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"
+ (setq gptel-api-key "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"
        gptel-default-mode 'org-mode))
 #+end_src
 
