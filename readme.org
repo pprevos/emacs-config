@@ -1,0 +1,8 @@
+#+title: Emacs Configuration
+
+The =emacs-configuration.org= file contains my almost fully documented personal Emacs configuration. The file contains links to the relevant sections of the documentation (when viewed in Emacs) for each section (work in progress).
+
+My main uses cases are writing and publishing web pages, articles and books and some data analysis using R code.
+
+
+
