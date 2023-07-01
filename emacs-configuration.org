@@ -544,7 +544,7 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
 #+begin_src elisp
 (use-package gptel
  :config
- (setq gptel-api-key "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"
+ (setq gptel-api-key "***"
        gptel-default-mode 'org-mode))
 #+end_src
 
