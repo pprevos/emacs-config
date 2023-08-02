@@ -4,5 +4,7 @@ The =emacs-configuration.org= file contains my almost fully documented personal 
 
 My main uses cases are writing and publishing web pages, articles and books and some data analysis using R code.
 
+For more information see my website [[https://lucidmanager.org/tags/emacs/][Emacs for Content Creators]].
+
 
 

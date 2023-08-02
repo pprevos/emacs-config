@@ -1,48 +1,48 @@
 #+title:    Emacs Configuration
 #+property: header-args :results silent :tangle ~/.config/emacs/init.el
 
-This file contains an annotated configuration for Emacs. The basic philosophy is to stay as close as vanilla Emacs as is humanly bearable.
+This file contains my annotated configuration for Emacs. My philosophy is to stay as close as vanilla Emacs as is humanly bearable.
 
-To create the configuration file, use the ~org-babel-tangle~ function (=C-c C-v C-t=).
+Open this file in Org mode.
 
-Org Babel is the package that [[info:org#Evaluating Code Blocks][evaluates code blocks]] within an Org mode file. By default, it will ask for confirmation each time you execute a source block. This snippet nullifies this behaviour. It is not added (tangled) to the configuration.
+1. To create the configuration file, use ~org-babel-tangle~ (=C-c C-v C-t=).
+2. To test this configuration, evaluate ~org-babel-execute-buffer~ (=C-c C-v C-b=) on an Emacs instance without configuration (=emacs -q=).
+
+By default, Emacs asks for confirmation each time you execute a source block. The snippet below nullifies this behaviour. It is not added (tangled) to the configuration. Press =C-c C-c= with the cursor on the code to evaluate this snippet.
 
 #+begin_src emacs-lisp :tangle no
   ;; Trust all code embedded in Org files
   (setq org-confirm-babel-evaluate nil)
 #+end_src
 
-This configuration is divided in functional sections with a focus on writing prose and data science code. Each section is documented with links to relevant parts of the Emacs documentation or package website. This configuration is based on Emacs 28.2
+This configuration is divided in functional sections with a focus on writing prose and publishing. Most sections contain links to relevant documentation, either package websites or the Emacs manual. Links to the manual only work when opening this file in Emacs.
+
+This configuration is based on Emacs 29.1.
 
 * Basic Configuration
 This section provide the basic configuration for Emacs package management, cursor movement, completion and other fundamental aspects.
 
 ** Package Management
-This section enables the MELPA package archive and initialises the package management system.
+This section enables the [[https://melpa.org/][MELPA package]] archive and initialises the package management system. This archive provides additional packages, not listed in the default package archive ([[https://elpa.gnu.org/][ELPA]] and [[https://elpa.nongnu.org/][non-GNU ELPA]]).
 
-The [[info:use-package#Top][use-package]] library provides a tidy method to write init files in Emacs. The =use-package-always-ensure= option will install the package if it is not yet available, preventing having to add =:ensure t= to every package call.
+This configuration implements the [[info:use-package#Top][use-package]] library provides, which provides a tidy method to write init files in Emacs. The ~use-package-always-ensure~ option will install the package if it is not yet available.
 
 [[info:elisp#Native Compilation][Native compilation]] increases Emacs efficiency by compiling each package upon installation.
 
 #+begin_src elisp
   ;; Set package archives
-  (require 'package)
-  (add-to-list 'package-archives
-               '("melpa" . "https://melpa.org/packages/"))
+  (use-package package
+    :init
+    (add-to-list 'package-archives
+                 '("melpa" . "https://melpa.org/packages/"))
+    (package-initialize))
 
-  (package-initialize)
-
-  ;; Bootstrap `use-package'
-  (unless (package-installed-p 'use-package)
-    (package-refresh-contents)
-    (package-install 'use-package))
-  (require 'use-package)
-
-  ;; Always load packages when not yet installed
-  (setq use-package-always-ensure t)
-
-  ;; Native compile packges
-  (setq package-native-compile t)
+  (use-package use-package
+    :custom
+    ;; Always load packages when not yet installed
+    (use-package-always-ensure t)
+    ;; Native compile packges
+    (package-native-compile t))
 #+end_src
 
 ** Configuration files
@@ -50,35 +50,31 @@ Emacs includes a menu-driven configuration system that writes settings to the in
 
 #+begin_src emacs-lisp
   ;; Custom settings in a separate file and load the custom settings
-  (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+  (setq-default custom-file (expand-file-name "custom.el" user-emacs-directory))
 
   (when (file-exists-p custom-file)
     (load custom-file))
 #+end_src
 
 ** Cursor Movement
-*** Cursor Beacon
-[[https://github.com/Malabarba/beacon][Beacon mode]] makes it easier to find the cursor when moving between windows by flashing the background colour.
+*** Cursor Display
+This configuration [[info:emacs#Cursor Display][highlights the current line]].
 
 #+begin_src elisp
-  ;; Beacon to indicate the active window
-  (use-package beacon
-    :config
-    (beacon-mode 1))
-
   ;; Highlight current line
   (global-hl-line-mode)
 #+end_src
 
 *** Escape key behaviour
-The [[info:emacs#Quitting][escape key]] has to be pressed three time by default, which I have changed to once. It also negates the annoying behaviour that pressing escape can remove your carefully-crafted window setup.
+The [[info:emacs#Quitting][escape key]] has to be pressed three time by default, which I have changed to once. This config also remaps it to a different function, which negates the annoying behaviour that pressing escape can remove your carefully-crafted window setup.
 
 #+begin_src elisp
-  (global-set-key (kbd "<escape>") 'keyboard-quit)
+  (global-set-key (kbd "<escape>")
+                  'keyboard-quit)
 #+end_src
 
 *** Nullify common CUA Windows keys
-I am forced to use Windows at work, so these keybindings are in my muscle memory and do something very different in Emacs. To avoid confusion with CUA systems, =C-z= and =C-v= are disabled.  This code also adds the a more convenient key chord to remove a frame whe working with the [[info:emacs:][Emacs client]].
+I am forced to use Windows at work, so these keybindings are in my muscle memory and do something very different in Emacs. To avoid confusion with CUA systems, =C-z= and =C-v= are disabled.  This code also adds the a more convenient key chord to remove a frame whe working with the [[info:emacs#Emacs Server][Emacs Server]].
 
 #+begin_src elisp
   ;; Change keyboard defaults
@@ -88,7 +84,7 @@ I am forced to use Windows at work, so these keybindings are in my muscle memory
 #+end_src
 
 *** Yes or No
-Lastly, Emacs distinguishes between "y" or "yes" when asking for confirmation. Emacs uses the longer version when giving the wrong answer is perceived to have serious consequences. I prefer the [[info:emacs#Yes or No Prompts][Yes or No Prompts]] to be all the short version and take the risk.
+Emacs distinguishes between "y" or "yes" when asking for confirmation. Emacs uses the longer version when giving the wrong answer is perceived to have serious consequences. I prefer the [[info:emacs#Yes or No Prompts][Yes or No Prompts]] to be all the short version and take the 'risk'.
 
 #+begin_src elisp
   ;; Yes or No
@@ -98,8 +94,11 @@ Lastly, Emacs distinguishes between "y" or "yes" when asking for confirmation. E
 *** Window movement
 The default bindings for [[info:emacs#Other Window][moving between windows]] is a bit cumbersome, the built-in [[info:emacs#Window Convenience][Windmove package]] makes it a bit easier.
 
+Two sets of shortcuts are provided for a laptop and desktop keyboard.
+
 #+begin_src elisp
   ;; Window navigation
+
   ;; Fn-Super and arrow keys
   (global-set-key (kbd "s-<home>")  'windmove-left)
   (global-set-key (kbd "s-<end>")   'windmove-right)
@@ -125,7 +124,7 @@ The [[https://github.com/lukhas/buffer-move/blob/master/buffer-move.el][buffer-m
 #+end_src
 
 *** Splitting windows vertically
-The ~split-with-threhold~ variable informs how Emacs splits windows. Setting it to 80 forces vertical splits in more cases.
+The ~split-with-threhold~ variable informs how Emacs [[info:emacs#Window Choice][splits windows]]. Setting it to 80 forces vertical splits in more cases.
 
 #+begin_src elisp
   ;; Force vertical window split
@@ -177,11 +176,15 @@ This package enables [[https://github.com/minad/marginalia][marginala]] to minib
 ** Consult
 The [[https://github.com/minad/consult][Consult package]] provides search and navigation commands based on the Emacs completion function completing-read.
 
+I have amped-up to size of files that a re previewed to 16MB, mainly for large PDF files.
+
 #+begin_src elisp
   ;; Consult convenience functions
   (use-package consult
     :custom
     (consult-narrow-key "<")
+    (consult-preview-max-size (expt 2 24))
+    (consult-preview-raw-size consult-preview-max-size)
     :bind (("C-x C-r" . consult-recent-file)
            ("C-x b"   . consult-buffer)
            ("M-s-s"   . consult-ripgrep)
@@ -192,6 +195,8 @@ The [[https://github.com/minad/consult][Consult package]] provides search and na
 #+end_src
 
 ** Embark
+The [[https://github.com/oantolin/embark][Embark package]] makes it easy to choose a command to run based on what is near point.
+
 #+begin_src elisp
   (use-package embark
     :bind
@@ -217,36 +222,42 @@ The [[https://github.com/justbur/emacs-which-key][which-key package]] helps to d
 #+end_src
 
 *** Improved help buffers
-
+[[https://github.com/Wilfred/helpful][Helpful]] is an alternative to the built-in Emacs help that provides much more contextual information.
 
 #+begin_src emacs-lisp
   ;; Improved help buffers
   (use-package helpful
     :bind
-    (("C-h f" . #'helpful-callable)
-     ("C-h v" . #'helpful-variable)
-     ("C-h k" . #'helpful-key)
-     ("C-h F" . #'helpful-function)
-     ("C-h C" . #'helpful-command)))
+    (("C-h f" . helpful-callable)
+     ("C-h v" . helpful-variable)
+     ("C-h k" . helpful-key)
+     ("C-h F" . helpful-function)
+     ("C-h C" . helpful-command)))
 #+end_src
 
 ** File Management
 *** Default folders
-I use these default folders to configure my note-taking and bibliography management tools. Emacs Studio is the tentative name of my configuration.
+I use these default folders to configure my note-taking and bibliography management tools. Emacs Studio is the tentative name of my configuration. The default location to look for Org mode files is set to the notes folder within the document directory.
 
 #+begin_src emacs-lisp
   ;; File Management
 
   ;; Default folders
-  (setq emacs-studio-documents-directory (concat (getenv "HOME") "/Documents/")
-        org-directory (concat emacs-studio-documents-directory "notes/"))
+  (defvar emacs-studio-documents-directory (concat (getenv "HOME") "/Documents/")
+    "Location of documents.")
+
+  (setq org-directory (concat emacs-studio-documents-directory "notes/"))
 #+end_src
 
 *** Dired
+The [[info:emacs#Dired][directory-editor]] (dired) provides access to the file system. This configuration sets the way files are displayed and moves files to trash instead of removing them entirely. When two windows have dired buffers, copy and rename commands will automatically select the other buffer as target.
+
 #+begin_src elisp
   (use-package dired
-    :ensure nil
-    :commands (dired dired-jump)
+    :ensure
+    nil
+    :commands
+    (dired dired-jump)
     :custom
     (dired-listing-switches "-goah --group-directories-first --time-style=long-iso")
     (dired-dwim-target t)
@@ -258,7 +269,8 @@ Dired has the slightly annoying habit to create many buffers as you navigate thr
 
 #+begin_src elisp
   (use-package dired-single
-    :bind
+    :after
+    dired
     :init
     (define-key dired-mode-map [remap dired-find-file]
       'dired-single-buffer)
@@ -280,9 +292,9 @@ Dired has the slightly annoying habit to create many buffers as you navigate thr
   (use-package openwith
     :init
     (openwith-mode t)
-    (setq openwith-associations '(("\\.mp4\\'" "vlc" (file)))))
-
-  (setq large-file-warning-threshold nil)
+    :custom
+    (openwith-associations '(("\\.mp4\\'" "vlc" (file))))
+    (large-file-warning-threshold nil))
 #+end_src
 
 **** Open Files as root
@@ -296,54 +308,64 @@ Dired has the slightly annoying habit to create many buffers as you navigate thr
 #+end_src
 
 *** Backups and Lock files
+By default Emacs litters your folders with backups and lockfiles. This configuration moves all [[info:emacs#Backup][backup files]] to the =backups= folder in the configuration folder. [[info:emacs#Interlocking][Lockfiles]] are disabled, which is safe as there is only one user for this file system.
+
 #+begin_src elisp
   ;; Move backup files
-  (setq backup-directory-alist
-        `(("." . ,(expand-file-name "backups/" user-emacs-directory)))
-        backup-by-copying t    ; Don't delink hardlinks
-        version-control t      ; Use version numbers on backups
-        delete-old-versions t  ; Automatically delete excess backups
-        kept-new-versions 3    ; how many of the newest versions to keep
-        kept-old-versions 3)   ; and how many of the old
-
-  ;; No lock files
-  (setq create-lockfiles nil)
+  (setq-default backup-directory-alist
+                `(("." . ,(expand-file-name "backups/" user-emacs-directory)))
+                backup-by-copying t    ; Don't delink hardlinks
+                version-control t      ; Use version numbers on backups
+                delete-old-versions t  ; Automatically delete excess backups
+                kept-new-versions 3    ; how many of the newest versions to keep
+                kept-old-versions 3    ; and how many of the old version
+                create-lockfiles nil)  ; No lock files
 #+end_src
 
 *** Automatically Save Files
+The [[https://github.com/bbatsov/super-save][super-save package]] saves buffers when certain events happen - e.g. you switch between buffers, an Emacs frame loses focus, etc. It augments and replaces the standard =auto-save-mode=, which is disabled.
+
 #+begin_src emacs-lisp
   ;; Automatically saving files
   (use-package super-save
     :config
     (super-save-mode +1)
     :custom
-    (super-save-auto-save-when-idle t))
+    (super-save-auto-save-when-idle t)
+    (auto-save-default nil))
 #+end_src
 
-*** Store List of  Recently Opened Files
+*** Store List of Recently Opened Files
+The [[info:emacs#File Conveniences][recentf]] package keeps track of your recently opened files. 
+
 #+begin_src emacs-lisp
   (use-package recentf
+    :custom
+    (recentf-max-menu-items 50)
+    (recentf-max-saved-items 50)
     :config
-    (setq recentf-max-menu-items 50
-          recentf-max-saved-items 50)
     (add-to-list 'recentf-exclude
                  (expand-file-name user-emacs-directory)
                  (expand-file-name "/tmp/"))
-    (recentf-mode t))
-  (run-at-time nil (* 50 60) 'recentf-save-list)
+    (recentf-mode t)
+    (run-at-time nil (* 50 60) 'recentf-save-list))
 #+end_src
 
 *** File Reversion
+A buffer can get out of sync with respect to its visited file on disk if that file is changed by another program.  To keep it up to date, you can enable [[info:emacs#Auto Revert][Auto Revert mode]].
+
 #+begin_src elisp
   ;; Revert files automatically
   (global-auto-revert-mode)
 #+end_src
 
 *** Searching files and contents
-#+begin_src elisp
-  (setq xref-search-program 'ripgrep)
+The [[https://github.com/ggreer/the_silver_searcher][Silver Searcher]] is a lightning fast program to search through your files. This package interfaces the Silver Searcher with the Consult package.
 
+#+begin_src elisp
   (use-package consult-ag
+    :custom
+    (xref-search-program 'ripgrep)
     :bind
     (("M-s s" . consult-ag)))
 #+end_src
@@ -365,6 +387,8 @@ These configuration setting remove the tool bar, scroll bar and the menu. If you
 #+end_src
 
 ** Fonts
+My eyes are getting old and I like nice large fonts. 
+
 #+begin_src elisp
   ;; Main typeface
   (set-face-attribute 'default nil :family "Fira Code" :height 150)
@@ -397,35 +421,45 @@ The [[https://github.com/jtbm37/all-the-icons-dired][all-the-icons-dired]] packg
 #+end_src
 
 ** Themes
-The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Protesilaos Stavrou (Prot) provides colorful and legible themes. Every time Emacs starts, a random dark theme is loaded. Press the F12 theme to select another theme. Use C-F12 to pick a new random dark theme.
+The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Protesilaos Stavrou (Prot) provides colorful and legible themes. Every time Emacs starts, a random dark theme is loaded. Press the =F12= theme to select another theme. Use =C-F12= to pick a new random dark theme.
 
 #+begin_src emacs-lisp
   (use-package ef-themes
-    :init
-    (defun ef-themes-load-random-dark ()
+    :config
+    (defun my-ef-themes-load-random-dark ()
       (interactive)
       (ef-themes-load-random 'dark))
-
-    :bind (("C-<f12>" . ef-themes-select)
-           ("<f12>"   . ef-themes-load-random-dark))
+    (defun my-ef-themes-load-random-light ()
+      (interactive)
+      (ef-themes-load-random 'light))
+    :bind
+    (("C-<f12>" . ef-themes-select)
+     ("<f12>"   . my-ef-themes-load-random-dark)
+     ("<S-f12>"   . my-ef-themes-load-random-light))
+    :custom
+    (ef-themes-headings
+     '((1 . (bold variable-pitch 1.3))
+       (2 . (regular 1.1))
+       (t . (variable-pitch))))
     :init
-    (setq ef-themes-headings
-      '((1 . (bold variable-pitch 1.3))
-        (2 . (regular 1.1))
-        (t . (variable-pitch))))
-    (ef-themes-load-random-dark))
+    (ef-themes-load-random 'dark))
 #+end_src
 
 ** Mode Line
+This package adds icons to the [[info:emacs#Mode Line][mode line]]. You need to evaluate =(nerd-fonts-install)= to obtain the required fonts.
+
 #+begin_src elisp
   ;; Mode Line
   (use-package doom-modeline
-    :after (all-the-icons)
-    :init (doom-modeline-mode 1)
-    :custom (doom-modeline-enable-word-count t)
+    :after
+    (all-the-icons)
+    :init
+    (doom-modeline-mode 1)
+    :custom
+    (doom-modeline-enable-word-count t)
     (doom-modeline-buffer-encoding nil))
 
-  ;; Display battery life and time
+  ;; Display battery life and time in the mode line
   (display-battery-mode 1)
   (setq display-time-24hr-format t
         display-time-load-average-threshold 70) ;; CPU load threshold
@@ -433,6 +467,8 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
 #+end_src
 
 ** Org Mode
+Adding some spice to how Org mode looks and feels. Details available on [[https://lucidmanager.org/productivity/ricing-org-mode/][my website]].
+
 #+begin_src elisp
   (use-package org
     :config
@@ -448,6 +484,8 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
 #+end_src
 
 *** Org Appear
+The previous snippet hides emphasis markers. The [[https://github.com/awth13/org-appear][org-appear package]] toggles the visibility of these markers when the cursor is on the emphasised word. 
+
 #+begin_src elisp
   ;; Temporarily hide symbols
   (use-package org-appear
@@ -455,15 +493,20 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
 #+end_src
 
 *** LaTeX Previews
+Mathematical formulas in Org mode can be previewed with the =(org-latex-preview)= function. The [[https://github.com/io12/org-fragtog][FragTog package]] simplifies this approach by automatically toggling between preview and code. I have increased the size of LaTeX preview to make them easier to read.
+
 #+begin_src emacs-lisp
   (use-package org-fragtog
     :config
     (add-hook 'org-mode-hook 'org-fragtog-mode)
-    (setq org-format-latex-options
-          (plist-put org-format-latex-options :scale 2)))
+    :custom
+    (org-format-latex-options
+     (plist-put org-format-latex-options :scale 2)))
 #+end_src
 
 ** Dashboard
+The [[https://github.com/emacs-dashboard/emacs-dashboard][Emacs Dashboard]] has been configured to show my personal logo and some slogans.
+
 #+begin_src emacs-lisp
   (use-package dashboard
     :config
@@ -482,29 +525,15 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
                             (bookmarks . 5)
                             (agenda . 5)))
     (set-face-attribute 'dashboard-items-face nil :weight 'normal))
-
-  ;; Read file as list of lines
-  ;; http://ergoemacs.org/emacs/elisp_read_file_content.html
-  (defun read-lines (filepath)
-    "Return a list of lines of a file at FILEPATH."
-    (with-temp-buffer
-      (insert-file-contents filepath)
-      (split-string (buffer-string) "\n" t)))
-
-  ;; Use file as random footer message
-  ;; Quotes stored in quotes org-roam file
-  (setq dashboard-footer-messages
-        (read-lines (concat user-emacs-directory "dashboard-quotes.txt"))
-        dashboard-footer-icon
-        (all-the-icons-faicon "quote-right"
-                              :height 1.1
-                              :v-adjust -0.05
-                              :face 'font-lock-keyword-face))
 #+end_src
 
 * Research
-** Reading
+Now that the basics are out of the way we can start configuring functionality, Research is the first step in the writing process.
+
+** Reading, Listening and Watching
 *** PDF reader
+Emacs ships with a [[info:emacs#Document View][PDF reader]], but it is not very good with large files. The [[https://github.com/vedang/pdf-tools][PDF Tools]] package provides some more advanced functionality. This package requires you to also install the =pdfinfo= server.
+
 #+begin_src emacs-lisp
   (use-package pdf-tools
     :config
@@ -517,7 +546,7 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
 #+end_src
 
 *** RSS Feeds
-Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the Zettelkasten folder) to list links to the relevant feeds. 
+[[https://lucidmanager.org/productivity/read-rss-feeds-with-emacs-and-elfeed/][Elfeed]] is a simple program to read RSS feeds. The [[https://github.com/remyhonig/elfeed-org][elfeed-org package]] enables configuring Elfeed with an Org mode file, which in my case is a Denote file.
 
 #+begin_src emacs-lisp
   ;; Elfeed RSS reader
@@ -536,19 +565,14 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
   (use-package elfeed-org
     :config
     (elfeed-org)
-    (setq rmh-elfeed-org-files
+    :custom
+    (rmh-elfeed-org-files
           (list (concat org-directory "20220831T094726--elfeed-rss__config.org"))))
 #+end_src
 
-*** GPT
-#+begin_src elisp
-(use-package gptel
- :config
- (setq gptel-api-key "***"
-       gptel-default-mode 'org-mode))
-#+end_src
+*** Music Player
+Emacs cannot play music, but it can be an interface to a command line music player.  See my website for detail on how to [[https://lucidmanager.org/productivity/configure-emms/][configure EMMS]].
 
-** Music Player
 #+begin_src emacs-lisp
   ;; Play music with Emacs
   (use-package emms
@@ -575,19 +599,26 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
 #+end_src
 
 ** Taking Notes
-*** Org Mode Links
-#+begin_src elisp
-  (global-set-key (kbd "C-c l") 'org-store-link)
-#+end_src
+My note-taking workflow revolves around the magnificent [[info:denote#Top][Denote package]] by Prot. This configuration uses various additional packages to manage bibliographies and improve discover ability.
 
 *** Denote
 #+begin_src elisp
+  ;; Denote note-taking
+  
   (use-package denote
-    :config
-    (setq denote-directory org-directory
-          denote-date-prompt-use-org-read-date t)
-    (add-hook 'dired-mode-hook #'denote-dired-mode)
-    (set-face-attribute 'denote-faces-link nil :slant 'italic)
+    :init
+    ;; Register Denote's Org dynamic blocks
+    (require 'denote-org-dblock)
+    :custom
+    ;; Identify folder and use Org mode calendar
+    (denote-directory org-directory)
+    (denote-date-prompt-use-org-read-date t)
+    :hook
+    ;; Pretty filenames
+    (dired-mode . denote-dired-mode)
+    :custom-face
+    ;; Denote links are italic
+    (denote-faces-link ((t (:slant italic))))
     :bind
     (("C-c d n" . denote)
      ("C-c d d" . denote-date)
@@ -601,36 +632,11 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
      ("C-c d K" . denote-keywords-remove)
      ("C-c d p" . denote-org-promote-heading-to-note)
      ("C-c d D" . denote-org-dblock-insert-links)))
-
-  ;; Register Denote's Org dynamic blocks
-  (require 'denote-org-dblock)
-#+end_src
-
-**** Temporary fix for attachment links
-#+begin_src elisp
-  ;; Fix linking issues
-  (defun denote-get-path-by-id (id)
-    "Return absolute path of ID string in `denote-directory-files'."
-    (let ((files
-           (seq-filter
-            (lambda (file)
-              (and (denote-file-has-identifier-p file)
-                   (string-prefix-p id (file-name-nondirectory file))))
-            (denote-directory-files))))
-      (if (length< files 2)
-          (car files)
-        (seq-find
-         (lambda (file)
-           (let ((file-extension (file-name-extension file :period)))
-             (and (denote-file-is-note-p file)
-                  (or (string= (denote--file-extension denote-file-type)
-                               file-extension)
-                      (string= ".org" file-extension)
-                      (member file-extension (denote--extensions))))))
-         files))))
 #+end_src
 
 **** Denote Menu
+The [[https://github.com/namilus/denote-menu][Denote-Menu]] package provides an interface to find Denote notes.
+
 #+begin_src elisp
   (use-package denote-menu
     :bind (("C-c d m" . list-denotes)
@@ -642,18 +648,21 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
 #+end_src
 
 **** Explore Denote
+The [[https://github.com/pprevos/denote-explore][Denote-Explore package]] is a work in progress to help discovering and managing your digital Denote garden. Not yet available through a package manager.
+
 #+begin_src elisp
-  (add-to-list 'load-path "~/Documents/projects/emacs/denote-explore/")
-  (require 'denote-explore)
-  (let ((map global-map))
-    (define-key map (kbd "C-c d e c") #'denote-explore-count-notes)
-    (define-key map (kbd "C-c d e t") #'denote-explore-count-keywords)
-    (define-key map (kbd "C-c d e r") #'denote-explore-random-note)
-    (define-key map (kbd "C-c d e l") #'denote-explore-random-link)
-    (define-key map (kbd "C-c d e k") #'denote-explore-random-keyword))
+  (use-package denote-explore
+    :load-path
+    "~/Documents/projects/denote-explore/"
+    :bind
+    (("C-c d e r" . denote-explore-random-note)
+     ("C-c d e l" . denote-explore-random-link)
+     ("C-c d e k" . denote-explore-random-keyword)))
 #+end_src
 
 **** Denote extensions
+This function helps to convert an Org mode subtree to a new note.
+
 #+begin_src elisp
   (defun denote-org-promote-heading-to-note ()
     "Promote the content of an Org Mode heading to a separate note."
@@ -678,45 +687,55 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
 #+end_src
 
 *** Consult Notes
+The [[https://github.com/mclear-tools/consult-notes][consult-notes package]] provides easy access to your not collections via the Consult package, including multiple silos.
+
 #+begin_src elisp
   (use-package consult-notes
-    :bind (("C-c d f" . consult-notes))
-    :custom (consult-notes-file-dir-sources
-             `(("Notes"       ?n ,denote-directory)
-               ("Attachments" ?a ,(concat denote-directory "attachments/"))
-               ("Photos"      ?p "~/Pictures/"))))
+    :bind
+    (("C-c d f" . consult-notes))
+    :custom
+    (consult-notes-file-dir-sources
+     `(("Notes"       ?n ,denote-directory)
+       ("Attachments" ?a ,(concat denote-directory "attachments/"))
+       ("Photos"      ?p "~/Pictures/"))))
 #+end_src
 
-*** Org Capture
+*** Org Mode
+Lastly. we need to set some Org mode functionality for linking and capturing notes.  Fleeting notes will be stored in the first Denote file that matches =inbox.*_gtd=.
+
 #+begin_src elisp
-  ;; Org capture keyboard shortcut and templates
-  (global-set-key (kbd "C-c c") 'org-capture)
-
-  ;; Don't add last captured as bookmark
-  (setq org-capture-bookmark nil)
-
-  ;; Set default file for fleeting notes
-  (setq org-default-notes-file
-        (car (directory-files denote-directory t "inbox.*gtd")))
-
-  ;; Capture templates
-  (setq org-capture-templates
-        '(("f" "Fleeting note" item
-           (file+headline org-default-notes-file "Notes")
-           "- %?")
-          ("t" "New task" entry
-           (file+headline org-default-notes-file "Tasks")
-           "* TODO %i%?")
-          ("e" "Email task" entry
-           (file+headline org-default-notes-file "Tasks")
-           "* TODO %:fromname: %a %?\nDEADLINE: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))")))
+  (use-package org
+    :bind
+    (("C-c c" . org-capture)
+     ("C-c l" . org-store-link))
+    :custom
+    ;; Don't add last captured as bookmark
+    (org-capture-bookmark nil)
+    ;; Set default file for fleeting notes
+    (org-default-notes-file
+     (car (directory-files denote-directory t "inbox.*_gtd")))
+    ;; Capture templates
+    (org-capture-templates
+     '(("f" "Fleeting note" item
+        (file+headline org-default-notes-file "Notes")
+        "- %?")
+       ("t" "New task" entry
+        (file+headline org-default-notes-file "Tasks")
+        "* TODO %i%?")
+       ("e" "Email task" entry
+        (file+headline org-default-notes-file "Tasks")
+        "* TODO %:fromname: %a %?\nDEADLINE: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))"))))
 #+end_src
 
 
-** Referencing 
+** Referencing
+References are the lifeblood of academic and technical writing. This configuration uses BibTeX files, using the built-in mode.
+
 *** BibTeX Mode
+The built-in BibTeX mode is badly documented. [[https://lucidmanager.org/productivity/emacs-bibtex-mode/][This article]] explains the principles of this configuration. Some bibliography packages also support [[https://citeproc-js.readthedocs.io/en/latest/][CSL-JSON files]].
+
 #+begin_src emacs-lisp
-  ;; Bibliography files
+  ;; Identify bibliography files
   (setq bibtex-files (directory-files
                         (concat emacs-studio-documents-directory "library/")
                         t "^[A-Za-z].+.bib$"))
@@ -724,7 +743,7 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
   (setq json-bib-files (directory-files
                         (concat emacs-studio-documents-directory "library/")
                         t "^[A-Za-z].+.json$"))
-  
+
   ;; BibTeX mode settings
   (setq bibtex-dialect "BibTeX"
         bibtex-user-optional-fields
@@ -742,6 +761,8 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
 #+end_src
 
 *** Citar
+The [[https://github.com/emacs-citar/citar][Citar package]] provides an interface to access the bibliography files.
+
 #+begin_src elisp
   (use-package citar
     :no-require
@@ -768,6 +789,8 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
         citar-symbol-separator " ")
 #+end_src
 
+Integrating Citar and Embark.
+
 #+begin_src elisp
   (use-package citar-embark
     :after citar embark
@@ -776,27 +799,30 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
 #+end_src
 
 *** Citar - Denote integration
+My [[https://lucidmanager.org/productivity/bibliographic-notes-in-emacs-with-citar-denote/][citar-denote package]] integrates the Denote note-taking and citar bibliography packages.
+
 #+begin_src elisp
-  (add-to-list 'load-path "~/Documents/projects/emacs/citar-denote")
-  (require 'citar-denote)
-  (citar-denote-mode)
-  (setq citar-open-always-create-notes t
-        citar-denote-title-format "author-year-title")
-  (let ((map global-map))
-    (define-key map (kbd "C-c d c c") #'citar-create-note)
-    (define-key map (kbd "C-c d c o") #'citar-denote-open-note)
-    (define-key map (kbd "C-c d c d") #'citar-denote-dwim)
-    (define-key map (kbd "C-c d c a") #'citar-denote-add-citekey)
-    (define-key map (kbd "C-c d c k") #'citar-denote-remove-citekey)
-    (define-key map (kbd "C-c d c e") #'citar-denote-open-reference-entry)
-    (define-key map (kbd "C-c d c r") #'citar-denote-find-reference)
-    (define-key map (kbd "C-c d c f") #'citar-denote-find-citation)
-    (define-key map (kbd "C-c d c n") #'citar-denote-cite-nocite)
-    (define-key map (kbd "C-c d c m") #'citar-denote-reference-nocite))
+  (use-package citar-denote
+    :custom
+    (citar-open-always-create-notes t)
+    (citar-denote-title-format "author-year-title")
+    :init
+    (citar-denote-mode)
+    :bind
+    (("C-c d c c" . citar-create-note)
+     ("C-c d c o" . citar-denote-open-note)
+     ("C-c d c d" . citar-denote-dwim)
+     ("C-c d c a" . citar-denote-add-citekey)
+     ("C-c d c k" . citar-denote-remove-citekey)
+     ("C-c d c e" . citar-denote-open-reference-entry)
+     ("C-c d c r" . citar-denote-find-reference)
+     ("C-c d c f" . citar-denote-find-citation)
+     ("C-c d c n" . citar-denote-cite-nocite)
+     ("C-c d c m" . citar-denote-reference-nocite)))
 #+end_src
 
 *** Citar in BibTeX files
-- [[https://github.com/emacs-citar/citar/wiki/Citar-in-bibtex-files-with-Embark][Citar in bibtex files with Embark · emacs-citar/citar Wiki · GitHub]]
+See: [[https://github.com/emacs-citar/citar/wiki/Citar-in-bibtex-files-with-Embark][Citar in bibtex files with Embark · emacs-citar/citar Wiki · GitHub]]
 
 #+begin_src elisp :tangle no
   (defun bibtex-key-embark ()
@@ -817,19 +843,9 @@ Elfeed is a simple program to read RSS feeds. Edit the =elfeed.org= file (in the
                  '(bibtex-key . bibtex-key-embark-map)))
 #+end_src
 
-*** Partial activation of org-ref
-#+begin_src elisp :tangle no :eval no
-  (add-to-list 'load-path "~/Documents/emacs/org-ref")
-  (use-package hydra)
-  (require 'org-ref-label-link)
-  (require 'org-ref-misc-links)
-  (require 'org-ref-ref-links)
-#+end_src
-
-
 * Writing
 ** Basic Settings
-The default behaviour for Emacs is that the scroll (page) up and down functions don't move all the way to the top or bottom of the buffer. The first variable fixes this. If you try to scroll beyond the limits of the buffer, Emacs will warn you.
+Some sane defaults for writing prose.
 
 #+begin_src elisp
   ;; Scroll to the first and last line of the buffer
@@ -846,6 +862,8 @@ The default behaviour for Emacs is that the scroll (page) up and down functions 
 #+end_src
 
 ** Spelling and Grammar
+Emacs has [[info:emacs#Spelling][Flyspell mode]], which interacts with a spellchecking program. This configuration depends on the [[https://hunspell.github.io/][hunspell software]].
+
 *** Flyspell
 #+begin_src elisp
   (use-package flyspell
@@ -865,9 +883,16 @@ The default behaviour for Emacs is that the scroll (page) up and down functions 
     :after (flyspell)
     :bind (("C-;" . flyspell-auto-correct-previous-word)
            ("<f7>" . flyspell-correct-wrapper)))
+
+  ;; Avoid conflict with Embark
+  ;; (define-key flyspell-mode-map (kbd "C-.") (kbd "C-:"))
+  (eval-after-load 'flyspell
+    '(define-key flyspell-mode-map (kbd "C-.") nil))
 #+end_src
 
 **** Switch dictionary
+Bespoke functionality to switch between dictionaries.
+
 #+begin_src emacs-lisp 
   (defun pp-switch-dictionary()
     "Switch between Dutch and Australian dictionaries."
@@ -878,14 +903,11 @@ The default behaviour for Emacs is that the scroll (page) up and down functions 
       (message "Dictionary switched from %s to %s" dic change)))
 
   (global-set-key (kbd "C-<f7>") 'pp-switch-dictionary)
-
-  ;; Avoid conflict with Embark
-  ;; (define-key flyspell-mode-map (kbd "C-.") (kbd "C-:"))
-  (eval-after-load 'flyspell
-  '(define-key flyspell-mode-map (kbd "C-.") nil))
 #+end_src
 
 *** Grammar
+The [[https://github.com/bnbeckwith/writegood-mode][writegood package]] helps to detect buzzwords and passive writing.
+
 #+begin_src emacs-lisp
   (use-package writegood-mode 
     :bind
@@ -896,12 +918,16 @@ The default behaviour for Emacs is that the scroll (page) up and down functions 
 #+end_src
 
 *** Dictionary
+The built-in dictionary search function pulls information from the [[https://dict.org/][dict.org]] website.
+
 #+begin_src elisp
   (setq dictionary-server "dict.org")
   (global-set-key (kbd "M-<f8>") 'dictionary-search)
 #+end_src
 
 *** Thesaurus
+The Merriam Webster Thesaurus helps with bring more variety in my writing.
+
 #+begin_src emacs-lisp
   ;; Merriam-Webster Thesaurus
   (use-package mw-thesaurus
@@ -910,7 +936,11 @@ The default behaviour for Emacs is that the scroll (page) up and down functions 
 #+end_src
 
 ** Text Completion
+Some assistance with typing text.
+
 *** Insert web links
+The org-web-tools package assists with inserting links from text copy to the kill ring.
+
 #+begin_src emacs-lisp
   ;; org web tools
   (use-package org-web-tools
@@ -918,6 +948,8 @@ The default behaviour for Emacs is that the scroll (page) up and down functions 
 #+end_src
 
 *** YaSnippet
+[[https://github.com/joaotavora/yasnippet][Yasnippet]] is a template tool for Emacs.
+
 #+begin_src elisp
   (use-package yasnippet
     :config
@@ -925,6 +957,8 @@ The default behaviour for Emacs is that the scroll (page) up and down functions 
 #+end_src
 
 *** Org mode list items
+[[https://github.com/calvinwyoung/org-autolist][org-autolist]] makes org-mode lists behave more like lists in non-programming editors such as Google Docs, MS Word, and OS X Notes.
+
 #+begin_src elisp
   (use-package org-autolist
     :hook (org-mode . org-autolist-mode))
