@@ -1,23 +1,23 @@
 #+title:    Emacs Configuration
 #+property: header-args :results silent :tangle ~/.config/emacs/init.el
 
-This file contains my annotated configuration for Emacs. My philosophy is to stay as close as vanilla Emacs as is humanly bearable.
+This file contains my annotated configuration for Emacs. The basic principle is to stay as close as vanilla Emacs as is humanly bearable.
 
-Open this file in Org mode.
+Open this file in Org mode for full functionality.
 
 1. To create the configuration file, use ~org-babel-tangle~ (=C-c C-v C-t=).
-2. To test this configuration, evaluate ~org-babel-execute-buffer~ (=C-c C-v C-b=) on an Emacs instance without configuration (=emacs -q=).
+2. To test this configuration, evaluate ~org-babel-execute-buffer~ (=C-c C-v C-b=) on an Emacs instance without configuration (=emacs -q=). 
 
-By default, Emacs asks for confirmation each time you execute a source block. The snippet below nullifies this behaviour. It is not added (tangled) to the configuration. Press =C-c C-c= with the cursor on the code to evaluate this snippet.
+When testing the config, Emacs asks for confirmation for each source block. The snippet below nullifies this behaviour. It is not added (tangled) to the configuration. Press =C-c C-c= with the cursor on the code to evaluate this snippet. 
 
 #+begin_src emacs-lisp :tangle no
   ;; Trust all code embedded in Org files
   (setq org-confirm-babel-evaluate nil)
 #+end_src
 
-This configuration is divided in functional sections with a focus on writing prose and publishing. Most sections contain links to relevant documentation, either package websites or the Emacs manual. Links to the manual only work when opening this file in Emacs.
+This configuration is divided in functional sections with a focus on writing prose and publishing the results. Most sections contain links to relevant documentation, either package websites or the Emacs manual. Links to the manual only work when opening this file with Emacs.
 
-This configuration is based on Emacs 29.1.
+Please note that this configuration only works in Emacs 29. Being a personal configuration, this is an opinionated approach to configuring Emacs.
 
 * Basic Configuration
 This section provide the basic configuration for Emacs package management, cursor movement, completion and other fundamental aspects.
@@ -58,7 +58,7 @@ Emacs includes a menu-driven configuration system that writes settings to the in
 
 ** Cursor Movement
 *** Cursor Display
-This configuration [[info:emacs#Cursor Display][highlights the current line]].
+This configuration [[info:emacs#Cursor Display][highlights the current line]] so the cursor is easier to find.
 
 #+begin_src elisp
   ;; Highlight current line
@@ -66,7 +66,7 @@ This configuration [[info:emacs#Cursor Display][highlights the current line]].
 #+end_src
 
 *** Escape key behaviour
-The [[info:emacs#Quitting][escape key]] has to be pressed three time by default, which I have changed to once. This config also remaps it to a different function, which negates the annoying behaviour that pressing escape can remove your carefully-crafted window setup.
+The [[info:emacs#Quitting][escape key]] has to be pressed three time by default, which I have changed to once. This config also remaps it to a different function, which negates the annoying behaviour that pressing escape removes your carefully-crafted window setup.
 
 #+begin_src elisp
   (global-set-key (kbd "<escape>")
@@ -92,7 +92,7 @@ Emacs distinguishes between "y" or "yes" when asking for confirmation. Emacs use
 #+end_src
 
 *** Window movement
-The default bindings for [[info:emacs#Other Window][moving between windows]] is a bit cumbersome, the built-in [[info:emacs#Window Convenience][Windmove package]] makes it a bit easier.
+The default bindings for [[info:emacs#Other Window][moving between windows]] are a bit cumbersome, the built-in [[info:emacs#Window Convenience][Windmove package]] makes it a bit easier.
 
 Two sets of shortcuts are provided for a laptop and desktop keyboard.
 
@@ -109,18 +109,6 @@ Two sets of shortcuts are provided for a laptop and desktop keyboard.
   (global-set-key (kbd "M-s-<right>") 'windmove-right)
   (global-set-key (kbd "M-s-<up>")    'windmove-up)
   (global-set-key (kbd "M-s-<down>")  'windmove-down)
-#+end_src
-
-The [[https://github.com/lukhas/buffer-move/blob/master/buffer-move.el][buffer-move]] package provides some convenience functions to swap the position of windows within a frame.
-
-#+begin_src elisp
-  ;; Switch buffers between windows
-  (use-package buffer-move
-    :bind (
-           ("C-s-<left>"  . buf-move-left)
-           ("C-s-<right>" . buf-move-right)
-           ("C-s-<up>"    . buf-move-up)
-           ("C-s-<down>"  . buf-move-down)))
 #+end_src
 
 *** Splitting windows vertically
@@ -162,7 +150,7 @@ The [[https://github.com/oantolin/orderless][orderless package]] matches pattern
 #+end_src
 
 *** Marginalia
-This package enables [[https://github.com/minad/marginalia][marginala]] to minibuffer completeions, providing som context to the candidates.
+This package adds [[https://github.com/minad/marginalia][marginala]] to minibuffer completeions, providing some context to the selection candidates.
 
 #+begin_src elisp
   ;; Enable richer annotations using the Marginalia package
@@ -237,16 +225,17 @@ The [[https://github.com/justbur/emacs-which-key][which-key package]] helps to d
 
 ** File Management
 *** Default folders
-I use these default folders to configure my note-taking and bibliography management tools. Emacs Studio is the tentative name of my configuration. The default location to look for Org mode files is set to the notes folder within the document directory.
+I use these default folders to configure my note-taking and bibliography management tools. The default location to look for Org mode files is set to the notes folder within the document directory.
 
 #+begin_src emacs-lisp
   ;; File Management
 
   ;; Default folders
-  (defvar emacs-studio-documents-directory (concat (getenv "HOME") "/Documents/")
+  (defvar documents-directory (concat (getenv "HOME") "/Documents/")
     "Location of documents.")
 
-  (setq org-directory (concat emacs-studio-documents-directory "notes/"))
+  (setq org-directory
+        (concat documents-directory "notes/"))
 #+end_src
 
 *** Dired
@@ -360,7 +349,7 @@ A buffer can get out of sync with respect to its visited file on disk if that fi
 #+end_src
 
 *** Searching files and contents
-The [[https://github.com/ggreer/the_silver_searcher][Silver Searcher]] is a lightning fast program to search through your files. This package interfaces the Silver Searcher with the Consult package.
+The [[https://github.com/ggreer/the_silver_searcher][Silver Searcher]] is a lightning fast program to search through your files. This package interfaces the consult package with the Silver Searcher.
 
 #+begin_src elisp
   (use-package consult-ag
@@ -374,7 +363,7 @@ The [[https://github.com/ggreer/the_silver_searcher][Silver Searcher]] is a ligh
 This section defines the design of the Emacs text interface, such as themes, fonts and typography. The dashboard is the central entry point 
 
 ** Minimal Interface
-These configuration setting remove the tool bar, scroll bar and the menu. If you still like to use the menu, press the F10 key.
+These configuration setting remove the tool bar, scroll bar and the menu. If you still like to use the menu to discover options, press the =F10= key.
 
 #+begin_src emacs-lisp
   ;; Minimal interface
@@ -528,7 +517,7 @@ The [[https://github.com/emacs-dashboard/emacs-dashboard][Emacs Dashboard]] has 
 #+end_src
 
 * Research
-Now that the basics are out of the way we can start configuring functionality, Research is the first step in the writing process.
+Now that the basics are out of the way we can start configuring functionality, starting with research.
 
 ** Reading, Listening and Watching
 *** PDF reader
@@ -687,7 +676,7 @@ This function helps to convert an Org mode subtree to a new note.
 #+end_src
 
 *** Consult Notes
-The [[https://github.com/mclear-tools/consult-notes][consult-notes package]] provides easy access to your not collections via the Consult package, including multiple silos.
+The [[https://github.com/mclear-tools/consult-notes][consult-notes package]] provides easy access to your not collections via the Consult package, including multiple Denote silos.
 
 #+begin_src elisp
   (use-package consult-notes
@@ -737,11 +726,11 @@ The built-in BibTeX mode is badly documented. [[https://lucidmanager.org/product
 #+begin_src emacs-lisp
   ;; Identify bibliography files
   (setq bibtex-files (directory-files
-                        (concat emacs-studio-documents-directory "library/")
+                        (concat documents-directory "library/")
                         t "^[A-Za-z].+.bib$"))
 
   (setq json-bib-files (directory-files
-                        (concat emacs-studio-documents-directory "library/")
+                        (concat documents-directory "library/")
                         t "^[A-Za-z].+.json$"))
 
   ;; BibTeX mode settings
@@ -803,6 +792,9 @@ My [[https://lucidmanager.org/productivity/bibliographic-notes-in-emacs-with-cit
 
 #+begin_src elisp
   (use-package citar-denote
+    ;; Remove load-path to instal from MELPA
+    :load-path
+    "~/Documents/projects/citar-denote"
     :custom
     (citar-open-always-create-notes t)
     (citar-denote-title-format "author-year-title")
@@ -846,6 +838,10 @@ See: [[https://github.com/emacs-citar/citar/wiki/Citar-in-bibtex-files-with-Emba
 * Writing
 ** Basic Settings
 Some sane defaults for writing prose.
+- Page up and down [[info:emacs#Scrolling][scroll to the top and bottom]] of the buffer.
+- [[info:emacs#Visual Line Mode][Visual line mode]] for natural line-breaking in text modes.
+- Erase when [[info:emacs#Using Region][overwriting seleced text]]
+- Copy the [[info:emacs#Clipboard][system clipboard]] to the kill ring
 
 #+begin_src elisp
   ;; Scroll to the first and last line of the buffer
@@ -891,7 +887,7 @@ Emacs has [[info:emacs#Spelling][Flyspell mode]], which interacts with a spellch
 #+end_src
 
 **** Switch dictionary
-Bespoke functionality to switch between dictionaries.
+Bespoke functionality to switch between Dutch and Austrian dictionaries.
 
 #+begin_src emacs-lisp 
   (defun pp-switch-dictionary()
@@ -926,7 +922,7 @@ The built-in dictionary search function pulls information from the [[https://dic
 #+end_src
 
 *** Thesaurus
-The Merriam Webster Thesaurus helps with bring more variety in my writing.
+The [[https://github.com/agzam/mw-thesaurus.el][Merriam Webster Thesaurus]] package helps with bring more variety in my writing.
 
 #+begin_src emacs-lisp
   ;; Merriam-Webster Thesaurus
@@ -939,7 +935,7 @@ The Merriam Webster Thesaurus helps with bring more variety in my writing.
 Some assistance with typing text.
 
 *** Insert web links
-The org-web-tools package assists with inserting links from text copy to the kill ring.
+The [[https://github.com/alphapapa/org-web-tools][org-web-tools package]] assists with inserting links from text copy to the kill ring.
 
 #+begin_src emacs-lisp
   ;; org web tools
@@ -988,14 +984,20 @@ The org-web-tools package assists with inserting links from text copy to the kil
 #+end_src
 
 ** Writing Theatrical Scripts
+I write a lot about magic tricks, which requires script-writing. [[https://fountain-mode.org/][Fountain-mode]] is a package that helps writing
+
 #+begin_src emacs-lisp
   (use-package fountain-mode)
 #+end_src
 
 * Data Science
 ** Generic Programming Mode settings
+Setting some generic programming mode variables.
+
 #+begin_src elisp
-    ;; Line numbers
+  ;; Generic Programming Mode settings
+  
+  ;; Line numbers
   (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 
   ;; Commenting
@@ -1007,15 +1009,17 @@ The org-web-tools package assists with inserting links from text copy to the kil
     (global-flycheck-mode t))
 
   (use-package elisp-lint)
+  #+end_src
+  
+** Parenthesis
+Making parenthetical life a bit easier.
 
+#+begin_src elisp
   (use-package smartparens
     :config
     (require 'smartparens-config)
     (smartparens-global-mode))
-#+end_src
 
-** Parenthesis
-#+begin_src elisp
   (use-package rainbow-delimiters
     :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
@@ -1029,7 +1033,9 @@ Colour HTML colour codes #864bf9.
     (rainbow-mode))
 #+end_src
 
-** Structure Templates
+** Literate Programming
+Templates for literate programming in Org mode.
+
 #+begin_src elisp
   ;; Add structure template for various languages
   (with-eval-after-load 'org
@@ -1039,7 +1045,7 @@ Colour HTML colour codes #864bf9.
     (add-to-list 'org-structure-template-alist '("ss" . "src shell\n"))) 
 #+end_src
 
-** Org Babel
+*** Org Babel
 #+begin_src emacs-lisp
   ;; Org Babel
   (org-babel-do-load-languages
@@ -1058,13 +1064,16 @@ Colour HTML colour codes #864bf9.
     (interactive)
     (save-excursion
       (org-babel-goto-src-block-head)
-2      (org-indent-block)))
+      (org-indent-block)))
 
   ;; Manage source code blocks
   (global-set-key (kbd "C-c C-v C-h") 'org-hide-block-all)
   (global-set-key (kbd "C-c C-v C-/") 'org-indent-block-jump)
 #+end_src
+
 ** Magit
+Version control.
+
 #+begin_src emacs-lisp
   ;; Magit
   (use-package magit
@@ -1073,6 +1082,8 @@ Colour HTML colour codes #864bf9.
 #+end_src
 
 ** Emacs Speaks Statistics
+R is my weapon of choice when analysing data.
+
 #+begin_src elisp
   ;; Emacs Speaks Statistics
   (use-package ess
@@ -1083,7 +1094,11 @@ Colour HTML colour codes #864bf9.
 #+end_src
 
 * Publishing
+Last step in the process is to publish the results.
+
 ** Org Mode Export Preferences
+Some export defaults.
+
 #+begin_src emacs-lisp
   (setq org-num-skip-unnumbered t
         org-export-with-drawers 'nil
@@ -1119,6 +1134,8 @@ Setting the =org-odt-preferred-output-format= variable lets you export an org fi
 
 
 ** PDF Export
+Various templates for LaTeX export.
+
 #+begin_src emacs-lisp
   ;; LaTeX
   (require 'ox-latex)
@@ -1332,6 +1349,8 @@ Setting the =org-odt-preferred-output-format= variable lets you export an org fi
  #+end_src
 
 ** Hugo
+
+
 #+begin_src emacs-lisp
   (defun org-hugo-follow-link (link)
     "Follow Hugo link shortcodes"
@@ -1353,6 +1372,8 @@ Setting the =org-odt-preferred-output-format= variable lets you export an org fi
 
 * Productivity
 ** Calendar Settings
+Defining the [[info:emacs#Date Formats][calendar style]] and [[help:calendar-location-name][my location]].
+
 #+begin_src elisp
   (setq calendar-date-style 'european
         calendar-location-name "Kangaroo Flat"
@@ -1361,7 +1382,7 @@ Setting the =org-odt-preferred-output-format= variable lets you export an org fi
 #+end_src
 
 *** Holidays
-Emacs by default shows too many irrelevant holidays, so I remove them all and replace them with my own.
+Emacs by default shows too many irrelevant religious holidays, so I remove them all and [[info:emacs#Holiday Customizing][replace them with my own]].
 
 #+begin_src emacs-lisp
   (setq holiday-general-holidays nil
@@ -1372,7 +1393,7 @@ Emacs by default shows too many irrelevant holidays, so I remove them all and re
         holiday-oriental-holidays nil)
 #+end_src
 
-These are the Dutch, Australian and atheist public holidays that are relevant to me.
+This config defines Dutch and Australian public holidays and some other special days.
 
 #+begin_src emacs-lisp
   (setq holiday-other-holidays
@@ -1408,15 +1429,11 @@ These are the Dutch, Australian and atheist public holidays that are relevant to
           (holiday-fixed 4 25 "Anzac Day")
           (holiday-float 6 1 2 "King's Birthday")
           (holiday-float 11 2 1 "Melbourne Cup")
-          ;; Atheist Holidays
+          ;; Atheist 'public holidays'
           (holiday-fixed 7 22 "Pi Approximation Day")
           (holiday-fixed 4 1 "April Fool's Day")
-          (holiday-float nil 6 nil "Friday the 13th" 13)
-          ;; Personal holidays
-          (holiday-fixed 8 26 "Wedding Anniversary")
-          (holiday-fixed 1 9  "Sue's Birthday")))
+          (holiday-float nil 6 nil "Friday the 13th" 13)))
 #+end_src
-
 
 ** Getting Things Done
 [[info:org#Workflow states][Workflow states]] indicate the status of actions. Some actions are logged an others require a comment. Logging for [[https://orgmode.org/manual/Repeated-tasks.html][repeated actions]] is disabled.
@@ -1438,6 +1455,8 @@ These are the Dutch, Australian and atheist public holidays that are relevant to
 #+end_src
 
 ** Agenda settings
+Defining some [[info:org#Agenda Views][Agenda Views]].
+
 #+begin_src emacs-lisp
   ;; Agenda settings
   (setq org-agenda-block-seperator ""
@@ -1485,6 +1504,8 @@ These are the Dutch, Australian and atheist public holidays that are relevant to
 #+end_src
 
 *** Org agenda from Denotes
+The function registers all Denote files with =_gtd= tags as agenda files.
+
 #+begin_src emacs-lisp
   (defun denote-pp-refresh-agenda-list ()
     (interactive)
@@ -1496,6 +1517,8 @@ These are the Dutch, Australian and atheist public holidays that are relevant to
 #+end_src
 
 *** Idle Agenda
+Sometimes it is good to see you agenda even if you have not asked for it. The [[https://enisozgen/idle-org-agenda/][idle-org-agenda package]] shows the agenda when Emacs is idle.
+
 #+begin_src elisp
   (use-package idle-org-agenda
     :after
