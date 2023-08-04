@@ -360,7 +360,7 @@ The [[https://github.com/ggreer/the_silver_searcher][Silver Searcher]] is a ligh
 #+end_src
 
 * Look and Feel
-This section defines the design of the Emacs text interface, such as themes, fonts and typography. The dashboard is the central entry point 
+This section defines the design of the Emacs text interface, such as themes, fonts and typography. 
 
 ** Minimal Interface
 These configuration setting remove the tool bar, scroll bar and the menu. If you still like to use the menu to discover options, press the =F10= key.
@@ -497,23 +497,48 @@ Mathematical formulas in Org mode can be previewed with the =(org-latex-preview)
 The [[https://github.com/emacs-dashboard/emacs-dashboard][Emacs Dashboard]] has been configured to show my personal logo and some slogans.
 
 #+begin_src emacs-lisp
-  (use-package dashboard
-    :config
-    (dashboard-setup-startup-hook)
-    (setq initial-buffer-choice
-          (lambda () (get-buffer-create "*dashboard*"))
-          dashboard-center-content t
-          dashboard-startup-banner 'logo
-          dashboard-banner-logo-png
-          (concat org-directory "images/logo.png")
-          dashboard-banner-logo-title "Playfully Intellectual\n  Reality Disruptor"
-          dashboard-init-info "HÖBSTE AL GESJREVE?"
-          dashboard-set-heading-icons t
-          dashboard-set-file-icons t
-          dashboard-items '((recents  . 5)
-                            (bookmarks . 5)
-                            (agenda . 5)))
-    (set-face-attribute 'dashboard-items-face nil :weight 'normal))
+      (use-package dashboard
+        :config
+        (dashboard-setup-startup-hook)
+        :custom
+        (initial-buffer-choice
+         (lambda () (get-buffer-create "*dashboard*")))
+        (dashboard-center-content t)
+        (dashboard-startup-banner 'logo)
+        (dashboard-banner-logo-png
+         (concat org-directory "images/logo.png"))
+        (dashboard-banner-logo-title
+         "Playfully Intellectual\n  Reality Disruptor")
+        (dashboard-init-info "HÖBSTE AL GESJREVE?")
+        (dashboard-set-heading-icons t)
+        (dashboard-set-file-icons t)
+        (dashboard-items '((recents  . 5)
+                           (bookmarks . 5)
+                           (agenda . 5))))
+#+end_src
+
+This next snippet reads a text file with quotes and adds these to the ~dashboard-footer-messages~ variable.
+
+#+begin_src elisp
+  ;; Read file as list of lines
+  ;; http://ergoemacs.org/emacs/elisp_read_file_content.html
+  (defun read-lines (filepath)
+    "Return a list of lines of a file at FILEPATH."
+    (with-temp-buffer
+      (insert-file-contents filepath)
+      (split-string (buffer-string) "\n" t)))
+
+  ;; Use file as random footer message
+  ;; Quotes stored in quotes Denote file
+
+  (setq dashboard-footer-messages
+        (append dashboard-footer-messages
+                (read-lines (concat user-emacs-directory "dashboard-quotes.txt")))
+        dashboard-footer-icon
+        (all-the-icons-faicon "quote-right"
+                              :height 1.1
+                              :v-adjust -0.05
+                              :face 'font-lock-keyword-face))
 #+end_src
 
 * Research
@@ -1368,7 +1393,6 @@ Various templates for LaTeX export.
                        " %}}"))
    :follow #'org-hugo-followlink)
 #+end_src
-
 
 * Productivity
 ** Calendar Settings
