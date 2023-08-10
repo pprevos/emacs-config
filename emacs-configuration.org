@@ -86,6 +86,8 @@ I am forced to use Windows at work, so these keybindings are in my muscle memory
 *** Yes or No
 Emacs distinguishes between "y" or "yes" when asking for confirmation. Emacs uses the longer version when giving the wrong answer is perceived to have serious consequences. I prefer the [[info:emacs#Yes or No Prompts][Yes or No Prompts]] to be all the short version and take the 'risk'.
 
+Some people have a more bullish attitude to confirmations in Emacs and have removed them altogether. 
+
 #+begin_src elisp
   ;; Yes or No
   (setq use-short-answers t)
@@ -117,6 +119,14 @@ The ~split-with-threhold~ variable informs how Emacs [[info:emacs#Window Choice]
 #+begin_src elisp
   ;; Force vertical window split
   (setq split-width-threshold 80)
+#+end_src
+
+*** Balance Windows
+
+#+begin_src elisp
+(use-package balanced-windows
+  :config
+  (balanced-windows-mode))
 #+end_src
 
 ** Minibuffer Completion
@@ -179,7 +189,7 @@ I have amped-up to size of files that a re previewed to 16MB, mainly for large P
            ("M-y"     . consult-yank-pop)
            ("M-s d"   . consult-find)
            ("C-x r b" . consult-bookmark)
-           ("M-g o"   . consult-org-heading)))
+           ("C-x r i"   . consult-org-heading)))
 #+end_src
 
 ** Embark
@@ -248,7 +258,8 @@ The [[info:emacs#Dired][directory-editor]] (dired) provides access to the file s
     :commands
     (dired dired-jump)
     :custom
-    (dired-listing-switches "-goah --group-directories-first --time-style=long-iso")
+    (dired-listing-switches
+     "-goah --group-directories-first --time-style=long-iso")
     (dired-dwim-target t)
     (delete-by-moving-to-trash t))
 #+end_src
@@ -270,19 +281,39 @@ Dired has the slightly annoying habit to create many buffers as you navigate thr
 #+end_src
 
 **** Hide dotfiles
+Dotfiles should be hidden unless when required. The [[https://github.com/mattiasb/dired-hide-dotfiles][dired-hide-dotfiles package]] makes this happen.
+
 #+begin_src elisp
   (use-package dired-hide-dotfiles
-    :hook (dired-mode . dired-hide-dotfiles-mode)
-    :bind (:map dired-mode-map ("." . dired-hide-dotfiles-mode)))
-  #+end_src
+    :hook
+    (dired-mode . dired-hide-dotfiles-mode)
+    :bind
+    (:map dired-mode-map ("." . dired-hide-dotfiles-mode)))
+#+end_src
 
 **** Open Files with external software
+
 #+begin_src elisp
   (use-package openwith
     :init
     (openwith-mode t)
     :custom
-    (openwith-associations '(("\\.mp4\\'" "vlc" (file))))
+    (openwith-associations
+     (list
+      (list (openwith-make-extension-regexp
+             '("mpg" "mpeg" "mp3" "mp4"
+               "avi" "wmv" "wav" "mov" "flv"
+               "ogm" "ogg" "mkv"))
+            "vlc"
+            '(file))
+      (list (openwith-make-extension-regexp
+             '("doc" "xls" "ppt" "odt" "ods" "odg" "odp"))
+            "libreoffice"
+            '(file))
+      (list (openwith-make-extension-regexp
+             '("epub"))
+            "foliate"
+            '(file))))
     (large-file-warning-threshold nil))
 #+end_src
 
@@ -410,6 +441,7 @@ The [[https://github.com/jtbm37/all-the-icons-dired][all-the-icons-dired]] packg
 #+end_src
 
 ** Themes
+*** Ef Themes
 The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Protesilaos Stavrou (Prot) provides colorful and legible themes. Every time Emacs starts, a random dark theme is loaded. Press the =F12= theme to select another theme. Use =C-F12= to pick a new random dark theme.
 
 #+begin_src emacs-lisp
@@ -422,8 +454,7 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
       (interactive)
       (ef-themes-load-random 'light))
     :bind
-    (("C-<f12>" . ef-themes-select)
-     ("<f12>"   . my-ef-themes-load-random-dark)
+    (("<f12>"   . my-ef-themes-load-random-dark)
      ("<S-f12>"   . my-ef-themes-load-random-light))
     :custom
     (ef-themes-headings
@@ -434,25 +465,42 @@ The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Pr
     (ef-themes-load-random 'dark))
 #+end_src
 
+*** Modus themes
+#+begin_src elisp
+  ;; Modus Themes
+  (use-package modus-themes
+    :custom
+    (modus-themes-italic-constructs t)
+    (modus-themes-bold-constructs t)
+    (modus-themes-mixed-fonts t)
+    (modus-themes-org-blocks 'tinted-background)
+    (modus-themes-headings '((1 . (1.5))
+                             (2 . (1.3))
+                             (t . (1.1))))
+    (modus-themes-to-toggle
+     '(modus-operandi-tinted modus-vivendi-tinted))
+    :bind
+    (("<C-f12>" . modus-themes-toggle)))
+#+end_src
+
 ** Mode Line
-This package adds icons to the [[info:emacs#Mode Line][mode line]]. You need to evaluate =(nerd-fonts-install)= to obtain the required fonts.
+This package adds icons to the [[info:emacs#Mode Line][mode line]]. You need to evaluate =(nerd-icons-install-fonts)= to obtain the required fonts.
 
 #+begin_src elisp
   ;; Mode Line
   (use-package doom-modeline
-    :after
-    (all-the-icons)
-    :init
-    (doom-modeline-mode 1)
+    :hook
+    (after-init . doom-modeline-mode)
     :custom
     (doom-modeline-enable-word-count t)
-    (doom-modeline-buffer-encoding nil))
-
-  ;; Display battery life and time in the mode line
-  (display-battery-mode 1)
-  (setq display-time-24hr-format t
-        display-time-load-average-threshold 70) ;; CPU load threshold
-  (display-time-mode 1)
+    (doom-modeline-buffer-encoding nil)
+    (doom-modeline-battery t)
+    (doom-modeline-display-time t)
+    (display-time-24hr-format t)
+    (display-time-load-average-threshold 70)
+    :init
+    (display-time-mode)
+    (display-battery-mode))
 #+end_src
 
 ** Org Mode
@@ -497,24 +545,26 @@ Mathematical formulas in Org mode can be previewed with the =(org-latex-preview)
 The [[https://github.com/emacs-dashboard/emacs-dashboard][Emacs Dashboard]] has been configured to show my personal logo and some slogans.
 
 #+begin_src emacs-lisp
-      (use-package dashboard
-        :config
-        (dashboard-setup-startup-hook)
-        :custom
-        (initial-buffer-choice
-         (lambda () (get-buffer-create "*dashboard*")))
-        (dashboard-center-content t)
-        (dashboard-startup-banner 'logo)
-        (dashboard-banner-logo-png
-         (concat org-directory "images/logo.png"))
-        (dashboard-banner-logo-title
-         "Playfully Intellectual\n  Reality Disruptor")
-        (dashboard-init-info "HÖBSTE AL GESJREVE?")
-        (dashboard-set-heading-icons t)
-        (dashboard-set-file-icons t)
-        (dashboard-items '((recents  . 5)
-                           (bookmarks . 5)
-                           (agenda . 5))))
+  (use-package dashboard
+    :after
+    org
+    :config
+    (dashboard-setup-startup-hook)
+    (setq dashboard-banner-logo-png
+     (concat org-directory "images/logo.png"))
+    :custom
+    (initial-buffer-choice
+     (lambda () (get-buffer-create "*dashboard*")))
+    (dashboard-center-content t)
+    (dashboard-startup-banner 'logo)
+    (dashboard-banner-logo-title
+     "Playfully Intellectual\n  Reality Disruptor")
+    (dashboard-init-info "HÖBSTE AL GESJREVE?")
+    (dashboard-set-heading-icons t)
+    (dashboard-set-file-icons t)
+    (dashboard-items '((recents  . 5)
+                       (bookmarks . 5)
+                       (agenda . 5))))
 #+end_src
 
 This next snippet reads a text file with quotes and adds these to the ~dashboard-footer-messages~ variable.
@@ -550,9 +600,9 @@ Emacs ships with a [[info:emacs#Document View][PDF reader]], but it is not very 
 
 #+begin_src emacs-lisp
   (use-package pdf-tools
-    :config
-    (setq pdf-view-display-size 1
-          pdf-view-midnight-colors '("#f8f8f2" . "#282a36"))
+    :custom
+    (pdf-view-display-size 'fit-page)
+    (pdf-view-midnight-colors '("#f8f8f2" . "#282a36"))
     :init
     (pdf-tools-install)
     :bind
@@ -618,11 +668,12 @@ My note-taking workflow revolves around the magnificent [[info:denote#Top][Denot
 *** Denote
 #+begin_src elisp
   ;; Denote note-taking
-  
+
   (use-package denote
     :init
     ;; Register Denote's Org dynamic blocks
     (require 'denote-org-dblock)
+    (denote-rename-buffer-mode t)
     :custom
     ;; Identify folder and use Org mode calendar
     (denote-directory org-directory)
@@ -655,10 +706,10 @@ The [[https://github.com/namilus/denote-menu][Denote-Menu]] package provides an 
   (use-package denote-menu
     :bind (("C-c d m" . list-denotes)
            :map denote-menu-mode-map
-           ("c"   . denote-menu-clear-filters)
-           ("r" . denote-menu-filter)
+           ("c" . denote-menu-clear-filters)
+           ("f" . denote-menu-filter)
            ("k" . denote-menu-filter-by-keyword)
-           ("e"   . denote-menu-export-to-dired)))
+           ("d" . denote-menu-export-to-dired)))
 #+end_src
 
 **** Explore Denote
@@ -668,10 +719,14 @@ The [[https://github.com/pprevos/denote-explore][Denote-Explore package]] is a w
   (use-package denote-explore
     :load-path
     "~/Documents/projects/denote-explore/"
+    :init
+    (require 'denote-explore-dashboard)
     :bind
     (("C-c d e r" . denote-explore-random-note)
      ("C-c d e l" . denote-explore-random-link)
-     ("C-c d e k" . denote-explore-random-keyword)))
+     ("C-c d e k" . denote-explore-random-keyword)
+     ("C-c d e w" . denote-explore-keywords-barchart)
+     ("C-c d e x" . denote-explore-extensions-barchart)))
 #+end_src
 
 **** Denote extensions
@@ -704,14 +759,15 @@ This function helps to convert an Org mode subtree to a new note.
 The [[https://github.com/mclear-tools/consult-notes][consult-notes package]] provides easy access to your not collections via the Consult package, including multiple Denote silos.
 
 #+begin_src elisp
-  (use-package consult-notes
-    :bind
-    (("C-c d f" . consult-notes))
-    :custom
-    (consult-notes-file-dir-sources
-     `(("Notes"       ?n ,denote-directory)
-       ("Attachments" ?a ,(concat denote-directory "attachments/"))
-       ("Photos"      ?p "~/Pictures/"))))
+    (use-package consult-notes
+      :bind
+      (("C-c d f" . consult-notes))
+      :custom
+      (consult-notes-file-dir-sources
+       `(("Archive"     ?r "~/Documents/archive/")
+         ("Notes"       ?n ,denote-directory)
+         ("Attachments" ?a ,(concat denote-directory "attachments/"))
+         ("Photos"      ?p "~/Pictures/"))))
 #+end_src
 
 *** Org Mode
@@ -1373,13 +1429,17 @@ Various templates for LaTeX export.
    ("\\subsection{%s}" . "\\subsection*{%s}")))
  #+end_src
 
-** Hugo
+** ePub ebooks
 
+#+begin_src elisp
+(use-package ox-epub
+  :demand t)
+#+end_src
 
+** Hugo Website Generator
 #+begin_src emacs-lisp
   (defun org-hugo-follow-link (link)
     "Follow Hugo link shortcodes"
-    (message "sex!")
     (org-link-open-as-file
      (string-trim link "{{% ref " " %}}")))
 
