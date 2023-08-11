@@ -1181,12 +1181,13 @@ Last step in the process is to publish the results.
 Some export defaults.
 
 #+begin_src emacs-lisp
-  (setq org-num-skip-unnumbered t
-        org-export-with-drawers 'nil
-        org-export-with-smart-quotes t
-        org-export-with-todo-keywords 'nil
-        org-export-with-broken-links t
-        org-export-with-toc 'nil)
+  (use-package org
+    :custom
+    (org-export-with-drawers nil)
+    (org-export-with-smart-quotes t)
+    (org-export-with-todo-keywords nil)
+    (org-export-with-broken-links t)
+    (org-export-with-toc nil))
 #+end_src
 
 ** Org-Cite Export
@@ -1220,18 +1221,11 @@ Various templates for LaTeX export.
 #+begin_src emacs-lisp
   ;; LaTeX
   (require 'ox-latex)
-  ;; (setq org-latex-pdf-process
-  ;;       '("pdflatex -interaction nonstopmode -output-directory %o %f"
-  ;;         "bibtex %b"
-  ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-  ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
-
-
-  (setq org-latex-pdf-process
-        '("pdflatex -interaction nonstopmode -output-directory=%o"
-          "bibtex %b"
-          "pdflatex -shell-escape -interaction nonstopmode -output-directory=%o"
-          "pdflatex -shell-escape -interaction nonstopmode -output-directory=%o"))
+   (setq org-latex-pdf-process
+         '("pdflatex -interaction nonstopmode -output-directory %o %f"
+           "bibtex %b"
+           "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+           "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
 
   ;; Clean temporary files afer export
   (setq org-latex-logfiles-extensions
@@ -1430,6 +1424,7 @@ Various templates for LaTeX export.
  #+end_src
 
 ** ePub ebooks
+The [[https://github.com/ofosos/ox-epub][ox-epub]] package converts Org mode files to epub.
 
 #+begin_src elisp
 (use-package ox-epub
@@ -1452,6 +1447,13 @@ Various templates for LaTeX export.
                         (read-file-name "File: "))
                        " %}}"))
    :follow #'org-hugo-followlink)
+
+  ;; Update files with last modifed date, when #+lastmod: is available
+  (setq time-stamp-active t
+        time-stamp-start "#\\+lastmod:[ \t]*"
+        time-stamp-end "$"
+        time-stamp-format "%04Y-%02m-%02d")
+  (add-hook 'before-save-hook 'time-stamp nil)
 #+end_src
 
 * Productivity
