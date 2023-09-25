@@ -1,10 +1,10 @@
 #+title: Emacs Configuration
 
-The =emacs-configuration.org= file contains my almost fully documented personal Emacs configuration. The file contains links to the relevant sections of the documentation (when viewed in Emacs) for each section (work in progress).
+The =emacs-configuration.org= file contains my almost fully documented personal Emacs configuration. The file contains links to the relevant sections of the documentation (when viewed inside Emacs) for each section (work in progress).
 
 My main uses cases are writing and publishing web pages, articles and books and some data analysis using R code.
 
-For more information see my website [[https://lucidmanager.org/tags/emacs/][Emacs for Content Creators]].
+For more information see my website [[https://lucidmanager.org/tags/emacs/][Emacs Writing Studio]].
 
 
 

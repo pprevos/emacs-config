@@ -1,5 +1,6 @@
 #+title:    Emacs Configuration
 #+property: header-args :results silent :tangle ~/.config/emacs/init.el
+#+lastmod: [2023-09-25 Mon]
 
 This file contains my annotated configuration for Emacs. The basic principle is to stay as close as vanilla Emacs as is humanly bearable.
 
@@ -50,7 +51,8 @@ Emacs includes a menu-driven configuration system that writes settings to the in
 
 #+begin_src emacs-lisp
   ;; Custom settings in a separate file and load the custom settings
-  (setq-default custom-file (expand-file-name "custom.el" user-emacs-directory))
+  (setq-default custom-file (expand-file-name
+                             "custom.el" user-emacs-directory))
 
   (when (file-exists-p custom-file)
     (load custom-file))
@@ -74,7 +76,7 @@ The [[info:emacs#Quitting][escape key]] has to be pressed three time by default,
 #+end_src
 
 *** Nullify common CUA Windows keys
-I am forced to use Windows at work, so these keybindings are in my muscle memory and do something very different in Emacs. To avoid confusion with CUA systems, =C-z= and =C-v= are disabled.  This code also adds the a more convenient key chord to remove a frame whe working with the [[info:emacs#Emacs Server][Emacs Server]].
+I am forced to use Windows at work, so these keybindings are in my muscle memory, but do something very different in Emacs. To avoid confusion with CUA systems, =C-z= and =C-v= are disabled.  This code also adds the a more convenient key chord to remove a frame whe working with the [[info:emacs#Emacs Server][Emacs Server]].
 
 #+begin_src elisp
   ;; Change keyboard defaults
@@ -86,11 +88,11 @@ I am forced to use Windows at work, so these keybindings are in my muscle memory
 *** Yes or No
 Emacs distinguishes between "y" or "yes" when asking for confirmation. Emacs uses the longer version when giving the wrong answer is perceived to have serious consequences. I prefer the [[info:emacs#Yes or No Prompts][Yes or No Prompts]] to be all the short version and take the 'risk'.
 
-Some people have a more bullish attitude to confirmations in Emacs and have removed them altogether. 
+Some people have a more bullish attitude to [[https://www.youtube.com/watch?v=ZFJlxBPvzE0][confirmations in Emacs]] and have removed them altogether. 
 
 #+begin_src elisp
   ;; Yes or No
-  (setq use-short-answers t)
+  (setq-default use-short-answers t)
 #+end_src
 
 *** Window movement
@@ -106,6 +108,7 @@ Two sets of shortcuts are provided for a laptop and desktop keyboard.
   (global-set-key (kbd "s-<end>")   'windmove-right)
   (global-set-key (kbd "s-<prior>") 'windmove-up)
   (global-set-key (kbd "s-<next>")  'windmove-down)
+
   ;; For keyboard without or inconvenient fn key
   (global-set-key (kbd "M-s-<left>")  'windmove-left)
   (global-set-key (kbd "M-s-<right>") 'windmove-right)
@@ -122,6 +125,7 @@ The ~split-with-threhold~ variable informs how Emacs [[info:emacs#Window Choice]
 #+end_src
 
 *** Balance Windows
+This package keeps the size of windows balanced. For example, when opening three windows and you close one, the remaining windows each get half the screen.
 
 #+begin_src elisp
 (use-package balanced-windows
@@ -189,7 +193,7 @@ I have amped-up to size of files that a re previewed to 16MB, mainly for large P
            ("M-y"     . consult-yank-pop)
            ("M-s d"   . consult-find)
            ("C-x r b" . consult-bookmark)
-           ("C-x r i"   . consult-org-heading)))
+           ("C-x r i" . consult-org-heading)))
 #+end_src
 
 ** Embark
@@ -244,8 +248,8 @@ I use these default folders to configure my note-taking and bibliography managem
   (defvar documents-directory (concat (getenv "HOME") "/Documents/")
     "Location of documents.")
 
-  (setq org-directory
-        (concat documents-directory "notes/"))
+  (setq-default org-directory
+                (concat documents-directory "notes/"))
 #+end_src
 
 *** Dired
@@ -289,32 +293,6 @@ Dotfiles should be hidden unless when required. The [[https://github.com/mattias
     (dired-mode . dired-hide-dotfiles-mode)
     :bind
     (:map dired-mode-map ("." . dired-hide-dotfiles-mode)))
-#+end_src
-
-**** Open Files with external software
-
-#+begin_src elisp
-  (use-package openwith
-    :init
-    (openwith-mode t)
-    :custom
-    (openwith-associations
-     (list
-      (list (openwith-make-extension-regexp
-             '("mpg" "mpeg" "mp3" "mp4"
-               "avi" "wmv" "wav" "mov" "flv"
-               "ogm" "ogg" "mkv"))
-            "vlc"
-            '(file))
-      (list (openwith-make-extension-regexp
-             '("doc" "xls" "ppt" "odt" "ods" "odg" "odp"))
-            "libreoffice"
-            '(file))
-      (list (openwith-make-extension-regexp
-             '("epub"))
-            "foliate"
-            '(file))))
-    (large-file-warning-threshold nil))
 #+end_src
 
 **** Open Files as root
@@ -365,8 +343,7 @@ The [[info:emacs#File Conveniences][recentf]] package keeps track of your recent
     (recentf-max-saved-items 50)
     :config
     (add-to-list 'recentf-exclude
-                 (expand-file-name user-emacs-directory)
-                 (expand-file-name "/tmp/"))
+                 (list (recentf-expand-file-name "~/\\.config.*")))
     (recentf-mode t)
     (run-at-time nil (* 50 60) 'recentf-save-list))
 #+end_src
@@ -424,6 +401,11 @@ My eyes are getting old and I like nice large fonts.
     (org-mode . mixed-pitch-mode))
 #+end_src
 
+*** Emojis
+#+begin_src elisp
+(use-package emojify
+  :hook (after-init . global-emojify-mode))
+#+end_src
 *** Icons
 The [[https://github.com/domtronn/all-the-icons.el][all-the-icons]] package provides access to iconographic character sets. You will need to use =(all-the-icons-install-fonts)= to download the font files when using this package for the first time.
 
@@ -529,16 +511,36 @@ The previous snippet hides emphasis markers. The [[https://github.com/awth13/org
     :hook (org-mode . org-appear-mode))
 #+end_src
 
+*** Org-Modern
+#+begin_src elisp
+    ;; Modernise Org mode interface
+    (use-package org-modern
+      :hook
+      (org-mode . global-org-modern-mode)
+      :custom
+      (org-modern-keyword nil)
+      (org-modern-checkbox nil)
+      (org-modern-table nil)
+      (org-modern-block-name))
+#+end_src
+
 *** LaTeX Previews
 Mathematical formulas in Org mode can be previewed with the =(org-latex-preview)= function. The [[https://github.com/io12/org-fragtog][FragTog package]] simplifies this approach by automatically toggling between preview and code. I have increased the size of LaTeX preview to make them easier to read.
 
 #+begin_src emacs-lisp
   (use-package org-fragtog
-    :config
-    (add-hook 'org-mode-hook 'org-fragtog-mode)
+    :hook
+    (org-mode . org-fragtog-mode)
     :custom
-    (org-format-latex-options
-     (plist-put org-format-latex-options :scale 2)))
+    (org-preview-latex-default-process 'dvisvgm)
+    :init
+    (let ((updates '(:foreground nil
+                                 :background nil
+                                 :scale 2
+                                 :html-scale 2)))
+      (dolist (pair (seq-partition updates 2))
+        (setq org-format-latex-options
+              (plist-put org-format-latex-options (car pair) (cadr pair))))))
 #+end_src
 
 ** Dashboard
@@ -579,7 +581,7 @@ This next snippet reads a text file with quotes and adds these to the ~dashboard
       (split-string (buffer-string) "\n" t)))
 
   ;; Use file as random footer message
-  ;; Quotes stored in quotes Denote file
+  ;; Quotes stored in quotes Denote
 
   (setq dashboard-footer-messages
         (append dashboard-footer-messages
@@ -607,6 +609,16 @@ Emacs ships with a [[info:emacs#Document View][PDF reader]], but it is not very 
     (pdf-tools-install)
     :bind
     (:map pdf-view-mode-map ("M" . pdf-view-midnight-minor-mode)))
+#+end_src
+
+*** ePub
+Read ebooks inside Emacs. Requires the ~unzip~ utility to be available.
+
+#+begin_src elisp
+  ;; Read ePub files
+  (use-package nov
+    :init
+    (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode)))
 #+end_src
 
 *** RSS Feeds
@@ -678,6 +690,7 @@ My note-taking workflow revolves around the magnificent [[info:denote#Top][Denot
     ;; Identify folder and use Org mode calendar
     (denote-directory org-directory)
     (denote-date-prompt-use-org-read-date t)
+    (denote-excluded-directories-regexp "finance")
     :hook
     ;; Pretty filenames
     (dired-mode . denote-dired-mode)
@@ -704,7 +717,7 @@ The [[https://github.com/namilus/denote-menu][Denote-Menu]] package provides an 
 
 #+begin_src elisp
   (use-package denote-menu
-    :bind (("C-c d m" . list-denotes)
+    :bind (("C-c d m" . denote-menu-list-denotes)
            :map denote-menu-mode-map
            ("c" . denote-menu-clear-filters)
            ("f" . denote-menu-filter)
@@ -764,7 +777,7 @@ The [[https://github.com/mclear-tools/consult-notes][consult-notes package]] pro
       (("C-c d f" . consult-notes))
       :custom
       (consult-notes-file-dir-sources
-       `(("Archive"     ?r "~/Documents/archive/")
+       `(("Archive"     ?r ,(concat documents-directory "archive/"))
          ("Notes"       ?n ,denote-directory)
          ("Attachments" ?a ,(concat denote-directory "attachments/"))
          ("Photos"      ?p "~/Pictures/"))))
@@ -830,12 +843,16 @@ The built-in BibTeX mode is badly documented. [[https://lucidmanager.org/product
         bibtex-autokey-edit-before-use nil)
 #+end_src
 
+*** Biblio
+#+begin_src elisp
+  (use-package biblio)
+#+end_src
+
 *** Citar
 The [[https://github.com/emacs-citar/citar][Citar package]] provides an interface to access the bibliography files.
 
 #+begin_src elisp
   (use-package citar
-    :no-require
     :custom
     (org-cite-global-bibliography (append bibtex-files json-bib-files))
     (org-cite-insert-processor 'citar)
@@ -852,11 +869,47 @@ The [[https://github.com/emacs-citar/citar][Citar package]] provides an interfac
 #+end_src
 
 #+begin_src elisp
-  (setq citar-symbols
-        `((file ,(all-the-icons-faicon "file-o" :face 'all-the-icons-green :v-adjust -0.1) . " ")
-          (note ,(all-the-icons-material "speaker_notes" :face 'all-the-icons-blue :v-adjust -0.3) . " ")
-          (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " "))
-        citar-symbol-separator " ")
+    (defvar citar-indicator-files-icons
+      (citar-indicator-create
+       :symbol (nerd-icons-faicon
+                "nf-fa-file_o"
+                :face 'nerd-icons-green
+                :v-adjust -0.1)
+       :function #'citar-has-files
+       :padding "  " ; need this because the default padding is too low for these icons
+       :tag "has:files"))
+    (defvar citar-indicator-links-icons
+      (citar-indicator-create
+       :symbol (nerd-icons-faicon
+                "nf-fa-link"
+                :face 'nerd-icons-orange
+                :v-adjust 0.01)
+       :function #'citar-has-links
+       :padding "  "
+       :tag "has:links"))
+    (defvar citar-indicator-notes-icons
+      (citar-indicator-create
+       :symbol (nerd-icons-codicon
+                "nf-cod-note"
+                :face 'nerd-icons-blue
+                :v-adjust -0.3)
+       :function #'citar-has-notes
+       :padding "    "
+       :tag "has:notes"))
+    (defvar citar-indicator-cited-icons
+      (citar-indicator-create
+       :symbol (nerd-icons-faicon
+                "nf-fa-circle_o"
+                :face 'nerd-icon-green)
+       :function #'citar-is-cited
+       :padding "  "
+       :tag "is:cited"))
+  
+  (setq citar-indicators
+    (list citar-indicator-files-icons
+          citar-indicator-links-icons
+          citar-indicator-notes-icons
+          citar-indicator-cited-icons)) 
 #+end_src
 
 Integrating Citar and Embark.
@@ -890,6 +943,7 @@ My [[https://lucidmanager.org/productivity/bibliographic-notes-in-emacs-with-cit
      ("C-c d c e" . citar-denote-open-reference-entry)
      ("C-c d c r" . citar-denote-find-reference)
      ("C-c d c f" . citar-denote-find-citation)
+     ("C-c d c x" . citar-denote-nocite)
      ("C-c d c n" . citar-denote-cite-nocite)
      ("C-c d c m" . citar-denote-reference-nocite)))
 #+end_src
@@ -1014,6 +1068,25 @@ The [[https://github.com/agzam/mw-thesaurus.el][Merriam Webster Thesaurus]] pack
 
 ** Text Completion
 Some assistance with typing text.
+*** Company Mode
+Company mode is a versatile package that can help you with completing long words. Its main purpose is to assist developers with writing code, but it can also help you complete words.
+
+#+begin_src emacs-lisp
+  ;; Auto completion
+  (use-package company
+    :config
+    (setq company-idle-delay 0
+          company-minimum-prefix-length 4
+          company-selection-wrap-around t))
+  (global-company-mode)
+
+
+
+  ;; Required for proportional font
+  (use-package company-posframe
+    :config
+    (company-posframe-mode 1))
+#+end_src
 
 *** Insert web links
 The [[https://github.com/alphapapa/org-web-tools][org-web-tools package]] assists with inserting links from text copy to the kill ring.
@@ -1057,7 +1130,8 @@ The [[https://github.com/alphapapa/org-web-tools][org-web-tools package]] assist
             (text-scale-set 2)
             (olivetti-mode t))
         (progn
-          (jump-to-register 1)
+          (if (eq (length (window-list)) 1)
+              (jump-to-register 1))
           (olivetti-mode 0)
           (text-scale-set 0))))
     :bind
@@ -1071,6 +1145,10 @@ I write a lot about magic tricks, which requires script-writing. [[https://fount
   (use-package fountain-mode)
 #+end_src
 
+** Markdown
+#+begin_src elisp
+(use-package markdown-mode)
+#+end_src
 * Data Science
 ** Generic Programming Mode settings
 Setting some generic programming mode variables.
@@ -1128,28 +1206,28 @@ Templates for literate programming in Org mode.
 
 *** Org Babel
 #+begin_src emacs-lisp
-  ;; Org Babel
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)   
-     (R       . t)
-     (python  . t)
-     (gnuplot . t)
-     (julia    . t)
-     (shell   . t)))
+    ;; Org Babel
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp . t)   
+       (R      . t)
+       (python . t)
+       (julia  . t)
+       (shell  . t)
+       (latex  . t)))
 
-  (setq org-confirm-babel-evaluate nil)
+    (setq org-confirm-babel-evaluate nil)
 
-  (defun org-indent-block-jump ()
-    "Jump to block head before indenting the source block."
-    (interactive)
-    (save-excursion
-      (org-babel-goto-src-block-head)
-      (org-indent-block)))
+    (defun org-indent-block-jump ()
+      "Jump to block head before indenting the source block."
+      (interactive)
+      (save-excursion
+        (org-babel-goto-src-block-head)
+        (org-indent-block)))
 
-  ;; Manage source code blocks
-  (global-set-key (kbd "C-c C-v C-h") 'org-hide-block-all)
-  (global-set-key (kbd "C-c C-v C-/") 'org-indent-block-jump)
+    ;; Manage source code blocks
+    (global-set-key (kbd "C-c C-v C-h") 'org-hide-block-all)
+    (global-set-key (kbd "C-c C-v C-/") 'org-indent-block-jump)
 #+end_src
 
 ** Magit
@@ -1218,7 +1296,7 @@ Setting the =org-odt-preferred-output-format= variable lets you export an org fi
 ** PDF Export
 Various templates for LaTeX export.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   ;; LaTeX
   (require 'ox-latex)
    (setq org-latex-pdf-process
@@ -1235,8 +1313,30 @@ Various templates for LaTeX export.
                 "tex" "bcf")))
 
   ;; Source code export
-  (setq org-latex-listings 'minted
+   (setq org-latex-listings 'minted
         org-latex-minted-options nil)
+#+end_src
+
+#+begin_src elisp
+  (use-package ox-latex
+    :ensure nil
+    :demand t
+    :custom
+    ;; Multiple LaTeX passes for bibliographies
+    (org-latex-pdf-process
+     '("pdflatex -interaction nonstopmode -output-directory %o %f"
+       "bibtex %b"
+       "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+       "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
+    ;; Clean temporary files afer export
+    (org-latex-logfiles-extensions
+     (quote ("lof" "lot" "tex~" "aux" "idx" "log" "out"
+             "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk"
+             "blg" "brf" "fls" "entoc" "ps" "spl" "bbl"
+             "tex" "bcf")))
+    ;; Source code export
+    (org-latex-listings 'minted)
+    (org-latex-minted-options nil))
 #+end_src
 
 *** Templates
@@ -1424,14 +1524,15 @@ Various templates for LaTeX export.
  #+end_src
 
 ** ePub ebooks
-The [[https://github.com/ofosos/ox-epub][ox-epub]] package converts Org mode files to epub.
-
 #+begin_src elisp
-(use-package ox-epub
-  :demand t)
+  ;; epub export
+  (use-package ox-epub
+    :demand t)
 #+end_src
 
 ** Hugo Website Generator
+The [[https://gohugo.io/][Hugo website generator]] can convert Org mode files to HTML and includes a powerful template engine.
+
 #+begin_src emacs-lisp
   (defun org-hugo-follow-link (link)
     "Follow Hugo link shortcodes"
@@ -1452,7 +1553,7 @@ The [[https://github.com/ofosos/ox-epub][ox-epub]] package converts Org mode fil
   (setq time-stamp-active t
         time-stamp-start "#\\+lastmod:[ \t]*"
         time-stamp-end "$"
-        time-stamp-format "%04Y-%02m-%02d")
+        time-stamp-format "[%04Y-%02m-%02d %a]")
   (add-hook 'before-save-hook 'time-stamp nil)
 #+end_src
 
@@ -1482,43 +1583,44 @@ Emacs by default shows too many irrelevant religious holidays, so I remove them 
 This config defines Dutch and Australian public holidays and some other special days.
 
 #+begin_src emacs-lisp
-  (setq holiday-other-holidays
-        '(;; Dutch holidays
-          (holiday-sexp
-           '(if (zerop (calendar-day-of-week (list 4 27 year)))
-                (list 4 26 year)
-              (list 4 27 year))
-           "Koningsdag")
-          (holiday-fixed 5 4 "Dodenherdenking")
-          (holiday-fixed 5 5 "Bevrijdingsdag")
-          (holiday-fixed 12 5 "Sinterklaas")
-          (holiday-fixed 12 25 "Eerste kerstdag")
-          (holiday-fixed 12 26 "Tweede kerstdag")
-          ;; Feestdagen gerelateerd aan Pasen
-          (holiday-easter-etc -49 "Carnaval")
-          (holiday-easter-etc -48 "Carnaval")
-          (holiday-easter-etc -47 "Carnaval")
-          (holiday-easter-etc -2 "Goede Vrijdag")
-          (holiday-easter-etc 0 "Eerste Paasdag")
-          (holiday-easter-etc +1 "Tweede Paasdag")
-          (holiday-easter-etc +39 "Hemelvaart")
-          (holiday-easter-etc +49 "Eerste Pinksterdag")
-          (holiday-easter-etc +50 "Tweede Pinksterdag")
-          ;; Overige feestdagen met een variabele datum
-          (holiday-float 5 0 2 "Moederdag")
-          (holiday-float 6 0 3 "Vaderdag")
-          (holiday-float 9 2 3 "Prinsjesdag")
-          ;; Australian Public Holidays
-          (holiday-fixed 1 1 "New Year's Day")
-          (holiday-fixed 1 26 "Australia Day")
-          (holiday-float 3 1 2 "Labour Day")
-          (holiday-fixed 4 25 "Anzac Day")
-          (holiday-float 6 1 2 "King's Birthday")
-          (holiday-float 11 2 1 "Melbourne Cup")
-          ;; Atheist 'public holidays'
-          (holiday-fixed 7 22 "Pi Approximation Day")
-          (holiday-fixed 4 1 "April Fool's Day")
-          (holiday-float nil 6 nil "Friday the 13th" 13)))
+    (setq holiday-other-holidays
+          '(;; Dutch holidays
+            (holiday-sexp
+             '(if (zerop (calendar-day-of-week (list 4 27 year)))
+                  (list 4 26 year)
+                (list 4 27 year))
+             "Koningsdag")
+            (holiday-fixed 5 4 "Dodenherdenking")
+            (holiday-fixed 5 5 "Bevrijdingsdag")
+            (holiday-fixed 12 5 "Sinterklaas")
+            (holiday-fixed 12 25 "Eerste kerstdag")
+            (holiday-fixed 12 26 "Tweede kerstdag")
+            ;; Feestdagen gerelateerd aan Pasen
+            (holiday-easter-etc -49 "Carnaval")
+            (holiday-easter-etc -48 "Carnaval")
+            (holiday-easter-etc -47 "Carnaval")
+            (holiday-easter-etc -2 "Goede Vrijdag")
+            (holiday-easter-etc 0 "Eerste Paasdag")
+            (holiday-easter-etc +1 "Tweede Paasdag")
+            (holiday-easter-etc +39 "Hemelvaart")
+            (holiday-easter-etc +49 "Eerste Pinksterdag")
+            (holiday-easter-etc +50 "Tweede Pinksterdag")
+            ;; Overige feestdagen met een variabele datum
+            (holiday-float 5 0 2 "Moederdag")
+            (holiday-float 6 0 3 "Vaderdag")
+            (holiday-float 9 2 3 "Prinsjesdag")
+            ;; Australian Public Holidays
+            (holiday-fixed 1 1 "New Year's Day")
+            (holiday-fixed 1 26 "Australia Day")
+            (holiday-float 3 1 2 "Labour Day")
+            (holiday-fixed 4 25 "Anzac Day")
+            (holiday-float 6 1 2 "King's Birthday")
+            (holiday-float 11 2 1 "Melbourne Cup")
+            ;; Atheist 'public holidays'
+            (holiday-fixed 7 22 "Pi Approximation Day")
+            (holiday-fixed 4 1 "April Fool's Day")
+            ;;(holiday-float nil 6 nil "Friday the 13th" 13)
+            ))
 #+end_src
 
 ** Getting Things Done
@@ -1556,8 +1658,11 @@ Defining some [[info:org#Agenda Views][Agenda Views]].
         org-agenda-remove-tags t
         org-agenda-restore-windows-after-quit t
         org-agenda-custom-commands
-        '(("n" "Netherlands" tags-todo "nl")
-          ("h" "Personal"
+        '(("n" "Netherlands" ((tags-todo "nl"))
+                              ((org-agenda-files
+                               (denote-directory-files-matching-regexp
+                                "_gtd"))))
+          ("h" "Third Hemisphere"
            ;; filter by personal categories?
            ((agenda "" ((org-agenda-span 3)
                         (org-agenda-start-on-weekday nil)))
@@ -1565,8 +1670,8 @@ Defining some [[info:org#Agenda Views][Agenda Views]].
             (todo "WAITING")
             (stuck))
            ((org-agenda-files
-             (denote-directory-files-matching-regexp "_gtd")))
-           )
+             (cl-remove-if (lambda (f) (string-match-p "_cw" f))
+                           (denote-directory-files-matching-regexp "_gtd")))))
           ("p" "Projects"
            ((todo "PROJECT")
             (stuck "" ((org-agenda-sorting-strategy
@@ -1584,7 +1689,7 @@ Defining some [[info:org#Agenda Views][Agenda Views]].
                              ("NEXT" "WAITING")
                              nil
                              "SCHEDULED\\|DEADLINE")
-        org-archive-location "~/Documents/archive/gtd-archive.org::* From %s")
+        org-archive-location "~/Documents/notes/20230604T152600--gtd-archive__productivity.org::* From %s")
 
   (global-set-key (kbd "C-c a") 'org-agenda)
 #+end_src
@@ -1611,7 +1716,7 @@ Sometimes it is good to see you agenda even if you have not asked for it. The [[
     org-agenda
     :custom
     (idle-org-agenda-key "h")
-    (idle-org-agenda-interval 600)
+    (idle-org-agenda-interval 900)
     :config
     (idle-org-agenda-mode))
 #+end_src
@@ -1681,8 +1786,9 @@ Install and configure =mu= and =offlineimap= before using this configuration: [[
     :ensure t
     :config
     (mastodon-discover)
-    (setq mastodon-instance-url "https://aus.social/"
-          mastodon-active-user "danderzei"))
+    :custom
+    (mastodon-instance-url "https://aus.social/")
+    (mastodon-active-user "danderzei"))
 #+end_src
 
 

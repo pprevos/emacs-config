@@ -1,0 +1,6 @@
+Premature optimization is the root of all evil in programming -- Donald Knuth
+No problem should ever have to be solved twice -- Eric S. Raymond, How to become a hacker
+Attitude is no substitute for competence -- Eric S. Raymond, How to become a hacker
+It is the mark of an educated mind to be able to entertain a thought without accepting it --- Aristotle
+The most important scientific discovery is ignorance.
+Knowing is not enough, you must apply. Willing is not enough, you must act - Bruce Lee
