@@ -1,6 +1,6 @@
 #+title:    Emacs Configuration
 #+property: header-args :results silent :tangle ~/.config/emacs/init.el
-#+lastmod: [2023-09-25 Mon]
+#+lastmod: [2023-12-04 Mon]
 
 This file contains my annotated configuration for Emacs. The basic principle is to stay as close as vanilla Emacs as is humanly bearable.
 
@@ -43,7 +43,9 @@ This configuration implements the [[info:use-package#Top][use-package]] library 
     ;; Always load packages when not yet installed
     (use-package-always-ensure t)
     ;; Native compile packges
-    (package-native-compile t))
+    (package-native-compile t)
+    ;; Do not display the warning buffer unless it's an error
+    (warning-minimum-level :error))
 #+end_src
 
 ** Configuration files
@@ -156,11 +158,11 @@ The [[https://github.com/oantolin/orderless][orderless package]] matches pattern
 
 #+begin_src elisp
   (use-package orderless
-    :init
-    (setq completion-styles '(orderless basic)
-          completion-category-defaults nil
-          completion-category-overrides
-          '((file (styles partial-completion)))))
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-defaults nil)
+    (completion-category-overrides
+     '((file (styles partial-completion)))))
 #+end_src
 
 *** Marginalia
@@ -343,7 +345,7 @@ The [[info:emacs#File Conveniences][recentf]] package keeps track of your recent
     (recentf-max-saved-items 50)
     :config
     (add-to-list 'recentf-exclude
-                 (list (recentf-expand-file-name "~/\\.config.*")))
+             (recentf-expand-file-name "\\.config"))
     (recentf-mode t)
     (run-at-time nil (* 50 60) 'recentf-save-list))
 #+end_src
@@ -422,47 +424,16 @@ The [[https://github.com/jtbm37/all-the-icons-dired][all-the-icons-dired]] packg
     (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
 #+end_src
 
-** Themes
-*** Ef Themes
-The [[https://protesilaos.com/emacs/ef-themes][Ef (εὖ) Themes]] package by Protesilaos Stavrou (Prot) provides colorful and legible themes. Every time Emacs starts, a random dark theme is loaded. Press the =F12= theme to select another theme. Use =C-F12= to pick a new random dark theme.
-
-#+begin_src emacs-lisp
-  (use-package ef-themes
-    :config
-    (defun my-ef-themes-load-random-dark ()
-      (interactive)
-      (ef-themes-load-random 'dark))
-    (defun my-ef-themes-load-random-light ()
-      (interactive)
-      (ef-themes-load-random 'light))
-    :bind
-    (("<f12>"   . my-ef-themes-load-random-dark)
-     ("<S-f12>"   . my-ef-themes-load-random-light))
-    :custom
-    (ef-themes-headings
-     '((1 . (bold variable-pitch 1.3))
-       (2 . (regular 1.1))
-       (t . (variable-pitch))))
-    :init
-    (ef-themes-load-random 'dark))
-#+end_src
-
-*** Modus themes
+** EF Themes
 #+begin_src elisp
-  ;; Modus Themes
-  (use-package modus-themes
+  (use-package disco-ef-themes
+    :load-path "~/.config/emacs/" ;; Change as required
     :custom
-    (modus-themes-italic-constructs t)
-    (modus-themes-bold-constructs t)
-    (modus-themes-mixed-fonts t)
-    (modus-themes-org-blocks 'tinted-background)
-    (modus-themes-headings '((1 . (1.5))
-                             (2 . (1.3))
-                             (t . (1.1))))
-    (modus-themes-to-toggle
-     '(modus-operandi-tinted modus-vivendi-tinted))
+    (disco-ef-themes-interval 600)
     :bind
-    (("<C-f12>" . modus-themes-toggle)))
+    (("<f12>"   . disco-ef-themes-load-random)
+     ("M-<f12>" . disco-ef-themes)
+     ("C-<f12>" . disco-ef-themes-change-shade)))
 #+end_src
 
 ** Mode Line
@@ -499,7 +470,10 @@ Adding some spice to how Org mode looks and feels. Details available on [[https:
           org-hide-block-startup t
           org-catch-invisible-edits 'error
           org-cycle-separator-lines 0
-          org-startup-with-latex-preview t))
+          org-startup-with-latex-preview t
+          org-pretty-entities t
+          org-use-sub-superscripts "{}"
+          org-list-allow-alphabetical t))
 #+end_src
 
 *** Org Appear
@@ -513,15 +487,17 @@ The previous snippet hides emphasis markers. The [[https://github.com/awth13/org
 
 *** Org-Modern
 #+begin_src elisp
-    ;; Modernise Org mode interface
-    (use-package org-modern
-      :hook
-      (org-mode . global-org-modern-mode)
-      :custom
-      (org-modern-keyword nil)
-      (org-modern-checkbox nil)
-      (org-modern-table nil)
-      (org-modern-block-name))
+  ;; Modernise Org mode interface
+  (use-package org-modern
+    :hook
+    (org-mode . global-org-modern-mode)
+    :custom
+    (org-modern-timestamp nil)
+    (org-modern-keyword nil)
+    (org-modern-checkbox nil)
+    (org-modern-table nil)
+    (org-modern-table-horizontal nil)
+    (org-modern-block-name))
 #+end_src
 
 *** LaTeX Previews
@@ -553,20 +529,25 @@ The [[https://github.com/emacs-dashboard/emacs-dashboard][Emacs Dashboard]] has 
     :config
     (dashboard-setup-startup-hook)
     (setq dashboard-banner-logo-png
-     (concat org-directory "images/logo.png"))
+          (concat org-directory "images/logo.png"))
     :custom
-    (initial-buffer-choice
-     (lambda () (get-buffer-create "*dashboard*")))
     (dashboard-center-content t)
     (dashboard-startup-banner 'logo)
     (dashboard-banner-logo-title
      "Playfully Intellectual\n  Reality Disruptor")
     (dashboard-init-info "HÖBSTE AL GESJREVE?")
+    (dashboard-recentf-show-base t)
+    (dashboard-recentf-item-format "%s")
     (dashboard-set-heading-icons t)
     (dashboard-set-file-icons t)
     (dashboard-items '((recents  . 5)
                        (bookmarks . 5)
                        (agenda . 5))))
+
+  (setq initial-buffer-choice
+        (lambda ()
+          (get-buffer-create "*dashboard*")
+          (revert-buffer)))
 #+end_src
 
 This next snippet reads a text file with quotes and adds these to the ~dashboard-footer-messages~ variable.
@@ -605,6 +586,7 @@ Emacs ships with a [[info:emacs#Document View][PDF reader]], but it is not very 
     :custom
     (pdf-view-display-size 'fit-page)
     (pdf-view-midnight-colors '("#f8f8f2" . "#282a36"))
+    (large-file-warning-threshold (* 50 (expt 2 20)))
     :init
     (pdf-tools-install)
     :bind
@@ -639,11 +621,12 @@ Read ebooks inside Emacs. Requires the ~unzip~ utility to be available.
      ("m" . (lambda () (interactive) (apply 'elfeed-search-toggle-all '(star))))))
 
   (use-package elfeed-org
+    :after
+    denote
     :config
     (elfeed-org)
     :custom
-    (rmh-elfeed-org-files
-          (list (concat org-directory "20220831T094726--elfeed-rss__config.org"))))
+    (rmh-elfeed-org-files (denote-directory-files-matching-regexp "elfeed")))
 #+end_src
 
 *** Music Player
@@ -661,11 +644,7 @@ Emacs cannot play music, but it can be an interface to a command line music play
     (emms-mpris-enable)
     :custom
     (emms-source-file-default-directory "~/Music/")
-    (emms-directory (expand-file-name "emms" user-emacs-directory))
-    (emms-info-functions '(emms-info-tinytag)) ;; pip install tinytag
     (emms-browser-covers 'emms-browser-cache-thumbnail-async)
-    (emms-browser-default-browse-type 'info-album)
-    (emms-playlist-buffer-name "*Music*")
     :bind
     (("<f5>" . emms-browser)
      ("<M-f5>" . emms)
@@ -677,20 +656,62 @@ Emacs cannot play music, but it can be an interface to a command line music play
 ** Taking Notes
 My note-taking workflow revolves around the magnificent [[info:denote#Top][Denote package]] by Prot. This configuration uses various additional packages to manage bibliographies and improve discover ability.
 
+*** Persistent Scratch Buffer
+#+begin_src elisp
+(use-package persistent-scratch
+  :hook
+  (after-init . persistent-scratch-setup-default)
+  :init
+  (persistent-scratch-setup-default)
+  (persistent-scratch-autosave-mode 1)
+  :bind
+  (("C-c w x" . scratch-buffer)))
+#+end_src
+
+*** Org Mode
+Lastly. we need to set some Org mode functionality for linking and capturing notes.  Fleeting notes will be stored in the first Denote file that matches =inbox.*_gtd=.
+
+#+begin_src elisp
+  (use-package org
+    :after denote
+    :bind
+    (("C-c c" . org-capture)
+     ("C-c l" . org-store-link))
+    :custom
+    ;; Don't add last captured as bookmark
+    (org-capture-bookmark nil)
+    ;; Set default file for fleeting notes
+    (org-default-notes-file
+     (car (directory-files denote-directory t "inbox")))
+    ;; Capture templates
+    (org-capture-templates
+     '(("f" "Fleeting note" item
+        (file+headline org-default-notes-file "Notes")
+        "- %?")
+       ("t" "New task" entry
+        (file+headline org-default-notes-file "Tasks")
+        "* TODO %i%?")
+       ("e" "Email task" entry
+        (file+headline org-default-notes-file "Tasks")
+        "* TODO %:fromname: %a %?\nDEADLINE: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))"))))
+#+end_src
+
 *** Denote
 #+begin_src elisp
   ;; Denote note-taking
 
   (use-package denote
+    :load-path
+    "~/Documents/projects/denote/"
     :init
     ;; Register Denote's Org dynamic blocks
     (require 'denote-org-dblock)
-    (denote-rename-buffer-mode t)
+    (denote-rename-buffer-mode)
     :custom
     ;; Identify folder and use Org mode calendar
     (denote-directory org-directory)
     (denote-date-prompt-use-org-read-date t)
-    (denote-excluded-directories-regexp "finance")
+    (denote-excluded-directories-regexp "financial")
     :hook
     ;; Pretty filenames
     (dired-mode . denote-dired-mode)
@@ -700,10 +721,12 @@ My note-taking workflow revolves around the magnificent [[info:denote#Top][Denot
     :bind
     (("C-c d n" . denote)
      ("C-c d d" . denote-date)
+     ("C-c d F" . denote-open-or-create)
      ("C-c d i" . denote-link-or-create)
+     ("C-c d I" . denote-link-after-creating)
      ("C-c d l" . denote-link-find-file)
      ("C-c d L" . denote-link-add-links)
-     ("C-c d b" . denote-link-find-backlink)
+     ("C-c d b" . denote-find-backlink)
      ("C-c d r" . denote-rename-file)
      ("C-c d s" . denote-rename-file-using-front-matter)
      ("C-c d k" . denote-keywords-add)
@@ -717,12 +740,29 @@ The [[https://github.com/namilus/denote-menu][Denote-Menu]] package provides an 
 
 #+begin_src elisp
   (use-package denote-menu
-    :bind (("C-c d m" . denote-menu-list-denotes)
+    :custom
+    (denote-menu-show-file-signature t)
+    :bind (("C-c d m" . denote-menu-list-notes)
            :map denote-menu-mode-map
            ("c" . denote-menu-clear-filters)
            ("f" . denote-menu-filter)
            ("k" . denote-menu-filter-by-keyword)
            ("d" . denote-menu-export-to-dired)))
+#+end_src
+
+**** Consult Notes
+The [[https://github.com/mclear-tools/consult-notes][consult-notes package]] provides easy access to your not collections via the Consult package, including multiple Denote silos.
+
+#+begin_src elisp
+  (use-package consult-notes
+    :bind
+    (("C-c d f" . consult-notes))
+    :custom
+    (consult-notes-file-dir-sources
+     `(("Notes"       ?n ,denote-directory)
+       ("Attachments" ?a ,(concat denote-directory "attachments/"))
+       ("Financial"   ?f ,(concat denote-directory "financial"))
+       ("Photos"      ?p "~/Pictures/"))))
 #+end_src
 
 **** Explore Denote
@@ -732,14 +772,21 @@ The [[https://github.com/pprevos/denote-explore][Denote-Explore package]] is a w
   (use-package denote-explore
     :load-path
     "~/Documents/projects/denote-explore/"
-    :init
-    (require 'denote-explore-dashboard)
     :bind
-    (("C-c d e r" . denote-explore-random-note)
+    (;; Statistics
+     ("C-c d e c" . denote-explore-count-notes)
+     ("C-c d e C" . denote-explore-count-keywords)
+     ("C-c d e s" . denote-explore-single-keywords)
+     ;; Random walks
+     ("C-c d e r" . denote-explore-random-note)
      ("C-c d e l" . denote-explore-random-link)
      ("C-c d e k" . denote-explore-random-keyword)
+     ;; Attachments
+     ("C-c d e R" . denote-explore-rename-file)
+     ;; Visualise
      ("C-c d e w" . denote-explore-keywords-barchart)
-     ("C-c d e x" . denote-explore-extensions-barchart)))
+     ("C-c d e x" . denote-explore-extensions-barchart)
+     ("C-c d e n" . denote-explore-network-r)))
 #+end_src
 
 **** Denote extensions
@@ -767,49 +814,6 @@ This function helps to convert an Org mode subtree to a new note.
             (end-of-buffer)))
       (user-error "Note a Denote Org Mode file")))
 #+end_src
-
-*** Consult Notes
-The [[https://github.com/mclear-tools/consult-notes][consult-notes package]] provides easy access to your not collections via the Consult package, including multiple Denote silos.
-
-#+begin_src elisp
-    (use-package consult-notes
-      :bind
-      (("C-c d f" . consult-notes))
-      :custom
-      (consult-notes-file-dir-sources
-       `(("Archive"     ?r ,(concat documents-directory "archive/"))
-         ("Notes"       ?n ,denote-directory)
-         ("Attachments" ?a ,(concat denote-directory "attachments/"))
-         ("Photos"      ?p "~/Pictures/"))))
-#+end_src
-
-*** Org Mode
-Lastly. we need to set some Org mode functionality for linking and capturing notes.  Fleeting notes will be stored in the first Denote file that matches =inbox.*_gtd=.
-
-#+begin_src elisp
-  (use-package org
-    :bind
-    (("C-c c" . org-capture)
-     ("C-c l" . org-store-link))
-    :custom
-    ;; Don't add last captured as bookmark
-    (org-capture-bookmark nil)
-    ;; Set default file for fleeting notes
-    (org-default-notes-file
-     (car (directory-files denote-directory t "inbox.*_gtd")))
-    ;; Capture templates
-    (org-capture-templates
-     '(("f" "Fleeting note" item
-        (file+headline org-default-notes-file "Notes")
-        "- %?")
-       ("t" "New task" entry
-        (file+headline org-default-notes-file "Tasks")
-        "* TODO %i%?")
-       ("e" "Email task" entry
-        (file+headline org-default-notes-file "Tasks")
-        "* TODO %:fromname: %a %?\nDEADLINE: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))"))))
-#+end_src
-
 
 ** Referencing
 References are the lifeblood of academic and technical writing. This configuration uses BibTeX files, using the built-in mode.
@@ -855,65 +859,73 @@ The [[https://github.com/emacs-citar/citar][Citar package]] provides an interfac
   (use-package citar
     :custom
     (org-cite-global-bibliography (append bibtex-files json-bib-files))
-    (org-cite-insert-processor 'citar)
-    (org-cite-follow-processor 'citar)
-    (org-cite-activate-processor 'citar)
     (citar-bibliography org-cite-global-bibliography)
-    (citar-at-point-function 'embark-act)
-    ;; optional: org-cite-insert is also bound to C-c C-x C-@
+    (org-cite-insert-processor   'citar)
+    (org-cite-follow-processor   'citar)
+    (org-cite-activate-processor 'citar)
+    (citar-at-point-function     'embark-act)
     :bind (("C-c d o" . citar-open)
            (:map org-mode-map
                  :package org ("C-c b" . #'org-cite-insert)))
     :hook
     (org-mode . citar-capf-setup))
+
+  (setq citar-templates
+        '((main . "${author editor:20%sn} ${date year issued:4}     ${title:60}")
+          (suffix . "${tags keywords:*}")
+          (preview . "${author editor:%etal} (${year issued date}) ${title}, ${journal journaltitle publisher container-title collection-title}.\n")
+          (note . "${author editor:%etal}: ${title}")))
 #+end_src
 
+**** Icons
 #+begin_src elisp
-    (defvar citar-indicator-files-icons
-      (citar-indicator-create
-       :symbol (nerd-icons-faicon
-                "nf-fa-file_o"
-                :face 'nerd-icons-green
-                :v-adjust -0.1)
-       :function #'citar-has-files
-       :padding "  " ; need this because the default padding is too low for these icons
-       :tag "has:files"))
-    (defvar citar-indicator-links-icons
-      (citar-indicator-create
-       :symbol (nerd-icons-faicon
-                "nf-fa-link"
-                :face 'nerd-icons-orange
-                :v-adjust 0.01)
-       :function #'citar-has-links
-       :padding "  "
-       :tag "has:links"))
-    (defvar citar-indicator-notes-icons
-      (citar-indicator-create
-       :symbol (nerd-icons-codicon
-                "nf-cod-note"
-                :face 'nerd-icons-blue
-                :v-adjust -0.3)
-       :function #'citar-has-notes
-       :padding "    "
-       :tag "has:notes"))
-    (defvar citar-indicator-cited-icons
-      (citar-indicator-create
-       :symbol (nerd-icons-faicon
-                "nf-fa-circle_o"
-                :face 'nerd-icon-green)
-       :function #'citar-is-cited
-       :padding "  "
-       :tag "is:cited"))
-  
+  (defvar citar-indicator-files-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-faicon
+              "file-o"
+              :face 'all-the-icons-green
+              :v-adjust -0.1)
+     :function #'citar-has-files
+     :padding "  " ; need this because the default padding is too low for these icons
+     :tag "has:files"))
+
+  (defvar citar-indicator-links-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-octicon
+              "link"
+              :face 'all-the-icons-orange
+              :v-adjust 0.01)
+     :function #'citar-has-links
+     :padding "  "
+     :tag "has:links"))
+
+  (defvar citar-indicator-notes-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-material
+              "speaker_notes"
+              :face 'all-the-icons-blue
+              :v-adjust -0.3)
+     :function #'citar-has-notes
+     :padding "  "
+     :tag "has:notes"))
+
+  (defvar citar-indicator-cited-icons
+    (citar-indicator-create
+     :symbol (all-the-icons-faicon
+              "circle-o"
+              :face 'all-the-icon-green)
+     :function #'citar-is-cited
+     :padding "  "
+     :tag "is:cited"))
+
   (setq citar-indicators
-    (list citar-indicator-files-icons
-          citar-indicator-links-icons
-          citar-indicator-notes-icons
-          citar-indicator-cited-icons)) 
+        (list citar-indicator-files-icons
+              citar-indicator-links-icons
+              citar-indicator-notes-icons
+              citar-indicator-cited-icons))
 #+end_src
 
-Integrating Citar and Embark.
-
+*** Integrating Citar and Embark
 #+begin_src elisp
   (use-package citar-embark
     :after citar embark
@@ -928,11 +940,11 @@ My [[https://lucidmanager.org/productivity/bibliographic-notes-in-emacs-with-cit
   (use-package citar-denote
     ;; Remove load-path to instal from MELPA
     :load-path
-    "~/Documents/projects/citar-denote"
+    "~/Documents/projects/citar-denote/"
     :custom
     (citar-open-always-create-notes t)
     (citar-denote-title-format "author-year-title")
-    :init
+    :config
     (citar-denote-mode)
     :bind
     (("C-c d c c" . citar-create-note)
@@ -943,34 +955,33 @@ My [[https://lucidmanager.org/productivity/bibliographic-notes-in-emacs-with-cit
      ("C-c d c e" . citar-denote-open-reference-entry)
      ("C-c d c r" . citar-denote-find-reference)
      ("C-c d c f" . citar-denote-find-citation)
-     ("C-c d c x" . citar-denote-nocite)
-     ("C-c d c n" . citar-denote-cite-nocite)
-     ("C-c d c m" . citar-denote-reference-nocite)))
+     ("C-c d c n" . citar-denote-nocite)
+     ("C-c d c m" . citar-denote-cite-nocite)))
 #+end_src
 
 *** Citar in BibTeX files
 See: [[https://github.com/emacs-citar/citar/wiki/Citar-in-bibtex-files-with-Embark][Citar in bibtex files with Embark · emacs-citar/citar Wiki · GitHub]]
 
-#+begin_src elisp :tangle no
-  (defun bibtex-key-embark ()
-    (save-excursion  
-      (bibtex-beginning-of-entry)  
-      (when (looking-at bibtex-entry-maybe-empty-head)  
-        (cons 'bibtex-key
-              (bibtex-key-in-head)))))
+#+begin_src elisp
+ (with-eval-after-load "embark"
+  (defun bibtex-key-target-finder ()
+    (save-excursion
+      (bibtex-beginning-of-entry)
+      (when (looking-at bibtex-entry-maybe-empty-head)
+        (cons 'bibtex-key (bibtex-key-in-head)))))
 
-  (with-eval-after-load "embark"
-    (add-to-list 'embark-target-finders 'bibtex-key-embark)
-    (embark-define-keymap bibtex-key-embark-map
-      "Embark keymap for BibTeX files"
-      ("f" 'citar-open-files)
-      ("n" 'citar-open-notes)
-      ("r" 'citar-copy-reference))
-    (add-to-list 'embark-keymap-alist
-                 '(bibtex-key . bibtex-key-embark-map)))
+  (add-to-list 'embark-target-finders 'bibtex-key-target-finder)
+
+  (defvar citar-embark-bibtex-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map "o" #'citar-open)
+      map)
+    "Embark keymap for BibTeX entries")
+
+(add-to-list 'embark-keymap-alist '(bibtex-key . citar-embark-bibtex-map)))
 #+end_src
 
-* Writing
+* Writing Prose
 ** Basic Settings
 Some sane defaults for writing prose.
 - Page up and down [[info:emacs#Scrolling][scroll to the top and bottom]] of the buffer.
@@ -1074,17 +1085,16 @@ Company mode is a versatile package that can help you with completing long words
 #+begin_src emacs-lisp
   ;; Auto completion
   (use-package company
-    :config
-    (setq company-idle-delay 0
-          company-minimum-prefix-length 4
-          company-selection-wrap-around t))
-  (global-company-mode)
-
-
+    :custom
+    (company-idle-delay 0)
+    (company-minimum-prefix-length 4)
+    (company-selection-wrap-around t)
+    :init
+    (global-company-mode))
 
   ;; Required for proportional font
   (use-package company-posframe
-    :config
+    :init
     (company-posframe-mode 1))
 #+end_src
 
@@ -1118,24 +1128,25 @@ The [[https://github.com/alphapapa/org-web-tools][org-web-tools package]] assist
 [[https://github.com/rnkn/olivetti][Olivetti mode]] is a minor mode that enables writing without distractions. This mode recreaates the old typewriter-feel by centering the text in the buffer at a specified with, which I set to 100 characters.
 
 #+begin_src emacs-lisp
-  (use-package olivetti
-    :config
-    (defun distraction-free ()
-      "Distraction-free writing environment using Olivetti package."
-      (interactive)
-      (if (equal olivetti-mode nil)
+    (use-package olivetti
+      :config
+      (defun distraction-free ()
+        "Distraction-free writing environment using Olivetti package."
+        (interactive)
+        (if (equal olivetti-mode nil)
+            (progn
+              (window-configuration-to-register 1)
+              (delete-other-windows)
+              (text-scale-set 2)
+              (olivetti-mode t))
           (progn
-            (window-configuration-to-register 1)
-            (delete-other-windows)
-            (text-scale-set 2)
-            (olivetti-mode t))
-        (progn
-          (if (eq (length (window-list)) 1)
-              (jump-to-register 1))
-          (olivetti-mode 0)
-          (text-scale-set 0))))
-    :bind
-    (("<f9>" . distraction-free)))
+            (if (eq (length (window-list)) 1)
+                (jump-to-register 1))
+            (olivetti-mode 0)
+            (text-scale-set 0))))
+      :bind
+      (("<f9>" . distraction-free)
+       ("M-<f9>" . follow-mode)))
 #+end_src
 
 ** Writing Theatrical Scripts
@@ -1149,26 +1160,33 @@ I write a lot about magic tricks, which requires script-writing. [[https://fount
 #+begin_src elisp
 (use-package markdown-mode)
 #+end_src
-* Data Science
+* Writing Code
 ** Generic Programming Mode settings
 Setting some generic programming mode variables.
 
 #+begin_src elisp
   ;; Generic Programming Mode settings
-  
+
   ;; Line numbers
   (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+
+  ;; Maximum width
+  (setq-default fill-column 80)
+  (add-hook 'prog-mode-hook 'display-fill-column-indicator-mode)
 
   ;; Commenting
   (global-set-key (kbd "C-c C-;") 'comment-region)
   (global-set-key (kbd "C-c C-:") 'uncomment-region)
+
+  ;; Evaluate
+  (define-key prog-mode-map (kbd "C-c C-d") 'eval-buffer)
 
   (use-package flycheck
     :init
     (global-flycheck-mode t))
 
   (use-package elisp-lint)
-  #+end_src
+#+end_src
   
 ** Parenthesis
 Making parenthetical life a bit easier.
@@ -1646,52 +1664,55 @@ This config defines Dutch and Australian public holidays and some other special 
 Defining some [[info:org#Agenda Views][Agenda Views]].
 
 #+begin_src emacs-lisp
-  ;; Agenda settings
-  (setq org-agenda-block-seperator ""
-        org-agenda-window-setup 'current-window
-        org-agenda-skip-deadline-if-done t
-        org-agenda-skip-scheduled-if-done t
-        org-agenda-include-diary t
-        calendar-week-start-day 1
-        org-log-repeat nil
-        org-agenda-start-with-follow-mode t
-        org-agenda-remove-tags t
-        org-agenda-restore-windows-after-quit t
-        org-agenda-custom-commands
-        '(("n" "Netherlands" ((tags-todo "nl"))
-                              ((org-agenda-files
-                               (denote-directory-files-matching-regexp
-                                "_gtd"))))
-          ("h" "Third Hemisphere"
-           ;; filter by personal categories?
-           ((agenda "" ((org-agenda-span 3)
-                        (org-agenda-start-on-weekday nil)))
-            (todo "NEXT")
-            (todo "WAITING")
-            (stuck))
-           ((org-agenda-files
-             (cl-remove-if (lambda (f) (string-match-p "_cw" f))
-                           (denote-directory-files-matching-regexp "_gtd")))))
-          ("p" "Projects"
-           ((todo "PROJECT")
-            (stuck "" ((org-agenda-sorting-strategy
-                        '(alpha-up priority-down))))))
-          ("c" "Work"
-           ;; filter by work categories?
-           ((agenda "" ((org-agenda-span 7)
-                        (org-agenda-start-on-weekday 1)))
-            (todo "NEXT")
-            (todo "WAITING")
-            (stuck))
-           ((org-agenda-files
-             (denote-directory-files-matching-regexp "_cw.*_gtd")))))
-        org-stuck-projects '("/PROJECT"
-                             ("NEXT" "WAITING")
-                             nil
-                             "SCHEDULED\\|DEADLINE")
-        org-archive-location "~/Documents/notes/20230604T152600--gtd-archive__productivity.org::* From %s")
-
-  (global-set-key (kbd "C-c a") 'org-agenda)
+  (use-package org
+    :after
+    denote
+    :custom
+    (org-agenda-block-seperator "")
+    (org-agenda-window-setup 'current-window)
+    (org-agenda-skip-deadline-if-done t)
+    (org-agenda-skip-scheduled-if-done t)
+    (org-agenda-include-diary t)
+    (calendar-week-start-day 1)
+    (org-log-repeat nil)
+    (org-agenda-start-with-follow-mode t)
+    (org-agenda-remove-tags t)
+    (org-agenda-restore-windows-after-quit t)
+    (org-agenda-custom-commands
+     '(("n" "Netherlands" ((tags-todo "nl"))
+        ((org-agenda-files
+          (denote-directory-files-matching-regexp
+           "_gtd"))))
+       ("h" "Third Hemisphere"
+        ;; filter by personal categories?
+        ((agenda "" ((org-agenda-span 3)
+                     (org-agenda-start-on-weekday nil)))
+         (todo "NEXT")
+         (todo "WAITING")
+         (stuck))
+        ((org-agenda-files
+          (cl-remove-if (lambda (f) (string-match-p "_cw" f))
+                        (denote-directory-files-matching-regexp "_gtd")))))
+       ("p" "Projects"
+        ((todo "PROJECT")
+         (stuck "" ((org-agenda-sorting-strategy
+                     '(alpha-up priority-down))))))
+       ("c" "Work"
+        ;; filter by work categories?
+        ((agenda "" ((org-agenda-span 7)
+                     (org-agenda-start-on-weekday 1)))
+         (todo "NEXT")
+         (todo "WAITING")
+         (stuck))
+        ((org-agenda-files
+          (denote-directory-files-matching-regexp "_cw.*_gtd"))))))
+    (org-stuck-projects '("/PROJECT"
+                        ("NEXT" "WAITING")
+                        nil
+                        "SCHEDULED\\|DEADLINE"))
+   (org-archive-location "~/Documents/notes/20230604T152600--gtd-archive__productivity.org::* From %s")
+   :bind
+   (("C-c a" . org-agenda)))
 #+end_src
 
 *** Org agenda from Denotes
@@ -1701,7 +1722,7 @@ The function registers all Denote files with =_gtd= tags as agenda files.
   (defun denote-pp-refresh-agenda-list ()
     (interactive)
     (setq org-agenda-files
-          (denote--directory-files-matching-regexp "_gtd")))
+          (denote-directory-files-matching-regexp "_gtd")))
 
   (denote-pp-refresh-agenda-list)
   (global-set-key (kbd "C-c d p") 'denote-pp-refresh-agenda-list)
@@ -1791,4 +1812,8 @@ Install and configure =mu= and =offlineimap= before using this configuration: [[
     (mastodon-active-user "danderzei"))
 #+end_src
 
+* Server Mode
+#+begin_src elisp
+(server-mode)
+#+end_src
 
